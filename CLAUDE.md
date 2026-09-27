@@ -52,6 +52,24 @@ Shared, git-ignored working state lives in `.notes/shared/` so all agents share 
 unless asked. `JOURNAL.md` (committed) is the day-by-day worklog; add an entry
 when we finish a chunk of work.
 
+### Commit & PR attribution
+
+Claude and Codex each have their own GitHub bot account (Write collaborators);
+tokens live in git-ignored `.env`. Identities, emails, and the exact git/gh
+recipe are in `.notes/shared/memory.md`. Policy:
+
+- **Pairing (Chris + agent):** author the commit as **Chris Love
+  <chris@christopherlove.au>** and add a `Co-Authored-By:` trailer for the working
+  agent using its **bot noreply email** (not `noreply@anthropic.com`) so its avatar
+  shows. This overrides Claude Code's default co-author line.
+- **Autonomous (agent solo on an issue):** author commits, open the PR, and
+  comment/review/resolve **as the bot's own identity** (`GH_TOKEN_CLAUDE` /
+  `GH_TOKEN_CODEX`). Escalate to Chris via review-request/@mention only when a
+  human decision is needed. Agents may review and resolve each other's PRs.
+
+Never commit or print the PATs; push tokens via an ephemeral URL, never persist
+them in `.git/config`.
+
 ## Data flow
 
 The browser never talks to the upstream feed directly (binary protobuf, no

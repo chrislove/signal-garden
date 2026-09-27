@@ -27,7 +27,17 @@ private scratch — don't read or write there unless asked.
 
 - `JOURNAL.md` (committed) — day-by-day record of what we did.
 
+## Identities & attribution
+
+Claude and Codex each have their own GitHub bot account (`claude-bot-chrislove`,
+`codex-bot-chrislove`), both Write collaborators. Full policy + the exact git/gh
+recipe are in `CLAUDE.md` ("Commit & PR attribution") and `.notes/shared/memory.md`.
+Short version: **pairing** work → author as Chris Love + `Co-Authored-By:` the
+agent's bot email; **autonomous** work on an issue → commit/PR/comment as the
+bot's own identity, escalate to Chris only when a human decision is needed.
+
 ## Secrets
 
-- API keys live in the git-ignored `.env` (e.g. `TYPESAFE_API_KEY` for Jev).
-  Never commit secrets or paste them into tracked files.
+- API keys and bot PATs live in the git-ignored `.env` (`TYPESAFE_API_KEY`,
+  `GH_TOKEN_CLAUDE`, `GH_TOKEN_CODEX`). Never commit secrets or paste them into
+  tracked files; push with an ephemeral token URL, never persist it in git config.
