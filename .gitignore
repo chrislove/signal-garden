@@ -21,6 +21,9 @@ appsettings.*.Local.json
 .env
 .env.*
 
+# ---- Personal notes (not part of the project) ----
+.notes/
+
 # ---- OS / editor cruft ----
 .DS_Store
 Thumbs.db
