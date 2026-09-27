@@ -1,0 +1,6 @@
+@SignalGarden.Api_HostAddress = http://localhost:5049
+
+GET {{SignalGarden.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

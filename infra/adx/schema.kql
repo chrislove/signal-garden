@@ -1,0 +1,82 @@
+// Signal Garden — ADX (Azure Data Explorer) schema for the Translink SEQ slice.
+// Run these against your free ADX cluster (https://dataexplorer.azure.com) in a
+// database named `signalgarden`. Free cluster: no subscription/card required.
+//
+// Apply top-to-bottom. `.create` commands are idempotent-ish: re-running a
+// `.create table` with the same schema is a no-op; use `.create-or-alter` for
+// functions so edits take effect on re-run.
+
+// ---------------------------------------------------------------------------
+// 1. Raw normalised observations (one row per vehicle report per poll).
+// ---------------------------------------------------------------------------
+.create table VehicleObservations (
+    EventTime: datetime,
+    IngestionTime: datetime,
+    VehicleId: string,
+    TripId: string,
+    RouteId: string,
+    Latitude: real,
+    Longitude: real,
+    Bearing: real,
+    Speed: real,
+    CurrentStopSequence: int,
+    Source: string
+)
+
+// JSON ingestion mapping — the ingest worker sends camelCase-free JSON keyed by
+// the column names above. Adjust `column`/`path` pairs if your payload differs.
+.create-or-alter table VehicleObservations ingestion json mapping "VehicleObservations_json"
+```
+[
+    {"column":"EventTime","path":"$.EventTime"},
+    {"column":"IngestionTime","path":"$.IngestionTime"},
+    {"column":"VehicleId","path":"$.VehicleId"},
+    {"column":"TripId","path":"$.TripId"},
+    {"column":"RouteId","path":"$.RouteId"},
+    {"column":"Latitude","path":"$.Latitude"},
+    {"column":"Longitude","path":"$.Longitude"},
+    {"column":"Bearing","path":"$.Bearing"},
+    {"column":"Speed","path":"$.Speed"},
+    {"column":"CurrentStopSequence","path":"$.CurrentStopSequence"},
+    {"column":"Source","path":"$.Source"}
+]
+```
+
+// Keep the experiment cheap: drop raw data after 30 days.
+.alter-merge table VehicleObservations policy retention softdelete = 30d
+
+// ---------------------------------------------------------------------------
+// 2. Query functions (back the API's IVehicleReadRepository).
+// ---------------------------------------------------------------------------
+
+// Latest known position per vehicle, optionally filtered to one route.
+// Backs GetLatestPositionsAsync.
+.create-or-alter function LatestVehiclePositions(routeFilter: string = "") {
+    VehicleObservations
+    | where isempty(routeFilter) or RouteId == routeFilter
+    | summarize arg_max(EventTime, *) by VehicleId
+}
+
+// Position history for one vehicle over a window, oldest first.
+// Backs GetVehicleHistoryAsync.
+.create-or-alter function VehicleHistory(vehicle: string, window: timespan = 1h) {
+    VehicleObservations
+    | where VehicleId == vehicle and EventTime > ago(window)
+    | order by EventTime asc
+}
+
+// ---------------------------------------------------------------------------
+// 3. Sketch: time-series exploration (uncomment/adapt once data flows).
+// ---------------------------------------------------------------------------
+// Active vehicle count per minute over the last 2h — a simple "pulse" signal.
+// VehicleObservations
+// | where EventTime > ago(2h)
+// | summarize ActiveVehicles = dcount(VehicleId) by bin(EventTime, 1m)
+// | render timechart
+//
+// Anomaly detection on that pulse (ADX built-in):
+// VehicleObservations
+// | where EventTime > ago(1d)
+// | make-series ActiveVehicles = dcount(VehicleId) on EventTime step 5m
+// | extend (anomalies, score, baseline) = series_decompose_anomalies(ActiveVehicles)
+// | render anomalychart

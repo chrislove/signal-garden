@@ -1,0 +1,38 @@
+<!-- Signal Garden dashboard shell. Regions are placeholders wired to real
+     data in a later step (map, event timeline, time-series charts, state cards). -->
+<div class="sg-shell">
+  <header class="sg-header">
+    <span class="sg-logo">🌱</span>
+    <div>
+      <h1>{{ title() }}</h1>
+      <p>{{ subtitle() }}</p>
+    </div>
+    <span class="sg-badge">scaffold</span>
+  </header>
+
+  <section class="sg-cards" aria-label="Operational state">
+    <article class="sg-card"><h2>Transport</h2><p class="sg-state">—</p></article>
+    <article class="sg-card"><h2>Weather</h2><p class="sg-state">—</p></article>
+    <article class="sg-card"><h2>Active vehicles</h2><p class="sg-state">—</p></article>
+    <article class="sg-card"><h2>Alerts</h2><p class="sg-state">—</p></article>
+  </section>
+
+  <main class="sg-grid">
+    <div class="sg-panel sg-map">
+      <h2>Map</h2>
+      <p class="sg-placeholder">Live vehicle positions will render here.</p>
+    </div>
+    <div class="sg-panel sg-charts">
+      <h2>Time series</h2>
+      <p class="sg-placeholder">Delays / active-vehicle pulse charts.</p>
+    </div>
+    <div class="sg-panel sg-timeline">
+      <h2>Event timeline</h2>
+      <p class="sg-placeholder">Alerts and notable events, newest first.</p>
+    </div>
+  </main>
+
+  <footer class="sg-footer">
+    Data © Translink (Queensland), CC BY 4.0.
+  </footer>
+</div>
