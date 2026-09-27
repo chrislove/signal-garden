@@ -31,8 +31,26 @@ services/api/      SignalGarden.Api  — thin read API (ASP.NET minimal API)
 services/ingest/   SignalGarden.Ingest — polling worker (GTFS-RT → ADX)
 infra/adx/         ADX table schema + KQL functions
 data/              Static GTFS reference notes (large files git-ignored)
-.notes/            Chris's personal notes — git-ignored, don't read or write unless asked
+.notes/            Scratch + shared agent context (git-ignored). See "Agents & memory".
 ```
+
+## Agents & memory
+
+This repo is worked on by more than one AI agent (Claude Code, Codex, …).
+**`CLAUDE.md` is the single source of truth** — `AGENTS.md` just points here so
+Codex reads the same guidance. If you change how the project works, update
+`CLAUDE.md`, not `AGENTS.md`.
+
+Shared, git-ignored working state lives in `.notes/shared/` so all agents share it:
+
+- `.notes/shared/context.md` — the fuller "why / how we got here" + open decisions.
+- `.notes/shared/memory.md` — durable facts to remember across sessions.
+
+**Read both at the start of a session, and keep them current as decisions land**
+— that is where project memory belongs, not in an agent's private store.
+`.notes/` outside `shared/` is Chris's private scratch — don't read or write there
+unless asked. `JOURNAL.md` (committed) is the day-by-day worklog; add an entry
+when we finish a chunk of work.
 
 ## Data flow
 
@@ -42,6 +60,16 @@ CORS). The path is always:
 ```
 GTFS-RT feed ──poll──▶ Ingest worker ──write──▶ ADX ──KQL──▶ API ──JSON──▶ Angular
 ```
+
+## Decision model (Jev)
+
+Optional "operations brain": **Jev** (TypeSafe AI) is a System-1 decision model —
+send a JSON `state` + typed questions (`choice` / `score` / `noul`), get back
+typed probabilistic verdicts (~70–500 ms, no hallucinated values). Planned first
+use: a **network pulse** (choice) for the dashboard's state cards and **route
+triage** (score + noul) for the timeline; verdicts get stored in ADX as their own
+time series. Don't use Jev for arithmetic — use it for judgment under ambiguity.
+Full details, API shape, and the idea menu are in `.notes/shared/context.md`.
 
 ## Commands
 
@@ -77,3 +105,5 @@ UI against a `signalgarden` database — there's no migration tooling.
   public.
 - Static GTFS files and any `.env` / `*.local.json` are git-ignored on purpose;
   don't commit credentials or cluster URIs.
+- API keys live in `.env` (git-ignored), e.g. `TYPESAFE_API_KEY` for Jev — the
+  TypeSafe SDKs read that env var. Never paste a key into a tracked file.
