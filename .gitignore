@@ -1,0 +1,26 @@
+# ---- .NET ----
+bin/
+obj/
+*.user
+.vs/
+
+# ---- Node / Angular ----
+node_modules/
+apps/web/.angular/
+apps/web/dist/
+dist/
+
+# ---- Static GTFS data (large, re-downloadable) ----
+data/gtfs-seq/
+data/**/*.zip
+data/**/*.txt
+
+# ---- Secrets / local config ----
+*.local.json
+appsettings.*.Local.json
+.env
+.env.*
+
+# ---- OS / editor cruft ----
+.DS_Store
+Thumbs.db
