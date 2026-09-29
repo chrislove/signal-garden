@@ -23,24 +23,10 @@
     Source: string
 )
 
-// JSON ingestion mapping — the ingest worker sends camelCase-free JSON keyed by
-// the column names above. Adjust `column`/`path` pairs if your payload differs.
-.create-or-alter table VehicleObservations ingestion json mapping "VehicleObservations_json"
-```
-[
-    {"column":"EventTime","path":"$.EventTime"},
-    {"column":"IngestionTime","path":"$.IngestionTime"},
-    {"column":"VehicleId","path":"$.VehicleId"},
-    {"column":"TripId","path":"$.TripId"},
-    {"column":"RouteId","path":"$.RouteId"},
-    {"column":"Latitude","path":"$.Latitude"},
-    {"column":"Longitude","path":"$.Longitude"},
-    {"column":"Bearing","path":"$.Bearing"},
-    {"column":"Speed","path":"$.Speed"},
-    {"column":"CurrentStopSequence","path":"$.CurrentStopSequence"},
-    {"column":"Source","path":"$.Source"}
-]
-```
+// JSON ingestion mapping (OPTIONAL — the ingest worker can also pass the column
+// mapping inline via the SDK). Keep it on ONE line: the ```...``` string
+// delimiter and the JSON must stay together or the web UI parser rejects it.
+.create-or-alter table VehicleObservations ingestion json mapping "VehicleObservations_json" ```[{"column":"EventTime","path":"$.EventTime"},{"column":"IngestionTime","path":"$.IngestionTime"},{"column":"VehicleId","path":"$.VehicleId"},{"column":"TripId","path":"$.TripId"},{"column":"RouteId","path":"$.RouteId"},{"column":"Latitude","path":"$.Latitude"},{"column":"Longitude","path":"$.Longitude"},{"column":"Bearing","path":"$.Bearing"},{"column":"Speed","path":"$.Speed"},{"column":"CurrentStopSequence","path":"$.CurrentStopSequence"},{"column":"Source","path":"$.Source"}]```
 
 // Keep the experiment cheap: drop raw data after 30 days.
 .alter-merge table VehicleObservations policy retention softdelete = 30d
