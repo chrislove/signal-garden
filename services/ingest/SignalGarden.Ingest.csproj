@@ -8,7 +8,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.36.2" />
+    <PackageReference Include="Grpc.Tools" Version="2.84.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
+  </ItemGroup>
+
+  <!-- Compile the vendored GTFS-Realtime proto (proto2) into C# at build time.
+       Generates the transit_realtime.* types (FeedMessage, VehiclePosition, ...). -->
+  <ItemGroup>
+    <Protobuf Include="Protos/gtfs-realtime.proto" GrpcServices="None" ProtoRoot="Protos" />
   </ItemGroup>
 
   <ItemGroup>
