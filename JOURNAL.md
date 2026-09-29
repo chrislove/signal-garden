@@ -41,12 +41,22 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
   - Jev key moved into git-ignored `.env` as `TYPESAFE_API_KEY`.
   - Started this journal.
 - Chris signing up for the **ADX free cluster** (need cluster URI + `signalgarden` DB).
+- Also set up an automated **iCloud backup** of `.notes/` (hourly launchd job via a
+  scoped, FDA-granted runner) so shared notes can't be lost.
+
+## Tue 2026-09-30 — ADX cluster is up
+
+- Created the **ADX free cluster** `signalgarden` in **Australia East** (100 GB /
+  4 vCPU, free for a year, no card). Connection URIs saved to the git-ignored
+  shared notes (not committed).
+- Next: confirm the database name, run `infra/adx/schema.kql`, then wire the
+  query/ingestion URIs into git-ignored config.
 
 ---
 
 ## The week ahead (planned)
 
-- ☐ **Stand up ADX** — create the free cluster + `signalgarden` DB, run `schema.kql`.
+- ☑ **Stand up ADX** — free cluster created; still to run `schema.kql`.
 - ☐ **Wire the feed** — ingest polls Translink VehiclePositions, decodes protobuf
   (`gtfs-realtime-bindings`), normalises to `VehicleObservation`.
 - ☐ **First ADX write** — batch observations into the `VehicleObservations` table.
