@@ -68,7 +68,20 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
     flags so "not reported" stays `null` rather than a fake zero.
 - First real read, Saturday ~7:17 am: **407 vehicles on 181 routes**, ~65 KB per
   poll, reports fresh to within seconds.
-- Next: the first ADX write (`TODO(ingest→adx)`).
+- **First ADX write.** Queued ingestion (`Kusto.Ingest`, CSV in column order,
+  Azure CLI auth) with a 30 s batching policy — rows queryable ~40 s after a
+  poll. 8:30 am: 636 vehicles on 276 routes.
+  - Auth detour: the CLI signs in as an Entra guest of my own tenant, not as a
+    personal Microsoft account, so the grant had to be `aaduser=<oid>;<tid>`,
+    not `msauser=`. Decoding the token's claims is what gave it away.
+  - First profile of the data, already full of questions:
+    - **Speed and bearing: 0 of 1,271 rows.** Translink doesn't send them. The
+      decoder keeps them `null`; a naive one would say every bus is parked.
+    - **~25% duplicates** — a vehicle that hasn't reported since the last poll
+      comes back with the same timestamp. Dedupe at write or at query time?
+    - **Stale positions** — a few vehicles' last report is hours old. When is
+      a vehicle "in service"?
+- Next: a KQL timechart of the morning, then a Council map layer for PAE-001.
 
 ---
 

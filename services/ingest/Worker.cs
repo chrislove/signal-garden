@@ -4,8 +4,8 @@ namespace SignalGarden.Ingest;
 /// Polls a GTFS-Realtime feed on a fixed interval, decodes it to
 /// <c>VehicleObservation</c> records, and writes them to ADX.
 ///
-/// Fetch and decode are wired; the ADX write is still a TODO, so for now each
-/// poll just logs a summary of what it saw.
+/// If <c>Ingest:Adx:IngestUri</c> isn't configured (it lives in user secrets,
+/// never in the repo), the worker still polls and logs — it just skips the write.
 /// </summary>
 public class Worker(ILogger<Worker> logger, IConfiguration configuration) : BackgroundService
 {
@@ -22,6 +22,16 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration) : Back
             interval.TotalSeconds,
             string.IsNullOrWhiteSpace(feedUrl) ? "(not configured)" : feedUrl);
 
+        var ingestUri = configuration["Ingest:Adx:IngestUri"];
+        using var writer = string.IsNullOrWhiteSpace(ingestUri)
+            ? null
+            : new AdxObservationWriter(
+                ingestUri,
+                configuration["Ingest:Adx:Database"] ?? "signalgarden",
+                configuration["Ingest:Adx:Table"] ?? "VehicleObservations");
+        if (writer is null)
+            logger.LogWarning("Ingest:Adx:IngestUri not set — polling without writing to ADX.");
+
         using var timer = new PeriodicTimer(interval);
         do
         {
@@ -32,14 +42,15 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration) : Back
                 var payload = await Http.GetByteArrayAsync(feedUrl, stoppingToken);
                 var observations = VehiclePositionDecoder.Decode(payload, DateTimeOffset.UtcNow);
 
-                // TODO(ingest→adx): batch-write the observations to the ADX
-                //                   VehicleObservations table (Kusto.Ingest).
+                if (writer is not null) await writer.WriteAsync(observations);
+
                 logger.LogInformation(
-                    "Polled {Bytes:N0} bytes → {Vehicles} vehicles on {Routes} routes, newest report {Newest:O}",
+                    "Polled {Bytes:N0} bytes → {Vehicles} vehicles on {Routes} routes, newest report {Newest:O}, ADX {Adx}",
                     payload.Length,
                     observations.Count,
                     observations.Select(o => o.RouteId).Distinct().Count(),
-                    observations.Count > 0 ? observations.Max(o => o.EventTime) : null);
+                    observations.Count > 0 ? observations.Max(o => o.EventTime) : null,
+                    writer is null ? "off" : "queued");
             }
             catch (Exception ex)
             {
