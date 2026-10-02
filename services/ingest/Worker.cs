@@ -4,11 +4,14 @@ namespace SignalGarden.Ingest;
 /// Polls a GTFS-Realtime feed on a fixed interval, decodes it to
 /// <c>VehicleObservation</c> records, and writes them to ADX.
 ///
-/// Currently a skeleton: the loop and timing are real, but the fetch → decode →
-/// ingest steps are stubbed out (see TODOs) until we wire the pipeline.
+/// Fetch and decode are wired; the ADX write is still a TODO, so for now each
+/// poll just logs a summary of what it saw.
 /// </summary>
 public class Worker(ILogger<Worker> logger, IConfiguration configuration) : BackgroundService
 {
+    // One long-lived client is fine for a single polling loop; no factory needed yet.
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var interval = TimeSpan.FromSeconds(configuration.GetValue("Ingest:PollSeconds", 20));
@@ -24,12 +27,19 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration) : Back
         {
             try
             {
-                // TODO(fetch):  download the GTFS-RT protobuf from feedUrl (HttpClient).
-                // TODO(decode): parse with gtfs-realtime-bindings → FeedMessage,
-                //               map each VehiclePosition entity to a VehicleObservation.
-                // TODO(ingest): batch-write the observations to the ADX
-                //               VehicleObservations table (Kusto.Ingest).
-                logger.LogInformation("Poll tick at {Time:O} — pipeline not yet wired.", DateTimeOffset.UtcNow);
+                if (string.IsNullOrWhiteSpace(feedUrl)) continue;
+
+                var payload = await Http.GetByteArrayAsync(feedUrl, stoppingToken);
+                var observations = VehiclePositionDecoder.Decode(payload, DateTimeOffset.UtcNow);
+
+                // TODO(ingest→adx): batch-write the observations to the ADX
+                //                   VehicleObservations table (Kusto.Ingest).
+                logger.LogInformation(
+                    "Polled {Bytes:N0} bytes → {Vehicles} vehicles on {Routes} routes, newest report {Newest:O}",
+                    payload.Length,
+                    observations.Count,
+                    observations.Select(o => o.RouteId).Distinct().Count(),
+                    observations.Count > 0 ? observations.Max(o => o.EventTime) : null);
             }
             catch (Exception ex)
             {
