@@ -52,13 +52,31 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
 - Next: confirm the database name, run `infra/adx/schema.kql`, then wire the
   query/ingestion URIs into git-ignored config.
 
+## Sat 2026-10-03 — The feed is live
+
+- Lost the last session to a crash: `claude --resume` died on macOS's default
+  256 open-files limit. Raised it in the shell profile (`ulimit -n 61440`).
+  (The Jev decision-engine wrapper from that stretch was safe: it landed on
+  `main` as PR #9 — a typed C# `IDecisionEngine` for choice/score/noul, with tests.)
+- **Wired the feed.** The ingest worker now fetches Translink VehiclePositions
+  every 20 s, decodes the protobuf, and normalises each entity into a
+  `VehicleObservation`.
+  - Swapped the stale `GtfsRealtimeBindings` NuGet package (built on an old
+    protobuf-net) for the official `gtfs-realtime.proto`, compiled at build time
+    with `Google.Protobuf` + `Grpc.Tools`.
+  - The decoder is a pure bytes-in, records-out function, and uses proto2 `Has*`
+    flags so "not reported" stays `null` rather than a fake zero.
+- First real read, Saturday ~7:17 am: **407 vehicles on 181 routes**, ~65 KB per
+  poll, reports fresh to within seconds.
+- Next: the first ADX write (`TODO(ingest→adx)`).
+
 ---
 
 ## The week ahead (planned)
 
-- ☑ **Stand up ADX** — free cluster created; still to run `schema.kql`.
-- ☐ **Wire the feed** — ingest polls Translink VehiclePositions, decodes protobuf
-  (`gtfs-realtime-bindings`), normalises to `VehicleObservation`.
+- ☑ **Stand up ADX** — free cluster created, `schema.kql` applied.
+- ☑ **Wire the feed** — ingest polls Translink VehiclePositions, decodes protobuf
+  (official `gtfs-realtime.proto`), normalises to `VehicleObservation`.
 - ☐ **First ADX write** — batch observations into the `VehicleObservations` table.
 - ☐ **The brain** — aggregate a network state summary, call Jev (network pulse +
   route triage), store the verdict.
