@@ -31,6 +31,11 @@
 // Keep the experiment cheap: drop raw data after 30 days.
 .alter-merge table VehicleObservations policy retention softdelete = 30d
 
+// Queued ingestion waits up to 5 min by default to build a batch. Our polls are
+// tiny (~400 rows / 20 s), so seal batches after 30 s instead and data shows
+// up in queries within about a minute.
+.alter table VehicleObservations policy ingestionbatching '{"MaximumBatchingTimeSpan":"00:00:30","MaximumNumberOfItems":500,"MaximumRawDataSizeMB":1024}'
+
 // ---------------------------------------------------------------------------
 // 2. Query functions (back the API's IVehicleReadRepository).
 // ---------------------------------------------------------------------------
