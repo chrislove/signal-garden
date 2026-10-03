@@ -81,7 +81,14 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
       comes back with the same timestamp. Dedupe at write or at query time?
     - **Stale positions** — a few vehicles' last report is hours old. When is
       a vehicle "in service"?
-- Next: a KQL timechart of the morning, then a Council map layer for PAE-001.
+- **Always on.** Moved the worker off the laptop onto a home server in Docker
+  (`compose.yaml`, `restart: unless-stopped`, rotated logs). It signs in as a
+  service principal that can only ingest into one database. The code switched to
+  `DefaultAzureCredential`, so the same binary uses `az login` on the laptop,
+  the service principal on the server, and a managed identity later in Azure.
+  Afternoon peak so far: ~740 vehicles on ~300 routes.
+- Learned that KQL is just Unix pipes for tables. Very happy about this.
+- Next: a KQL timechart of the day, then a Council map layer for PAE-001.
 
 ---
 
