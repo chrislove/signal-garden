@@ -1,0 +1,20 @@
+# Always-on ingest worker for a home server (or any Docker host).
+#
+#   git clone https://github.com/chrislove/signal-garden.git && cd signal-garden
+#   cp .env.ingest.example .env.ingest   # then fill it in — never commit it
+#   docker compose up -d --build
+#   docker compose logs -f ingest
+services:
+  ingest:
+    build:
+      context: .
+      dockerfile: services/ingest/Dockerfile
+    env_file: .env.ingest
+    environment:
+      DOTNET_ENVIRONMENT: Production
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
