@@ -20,6 +20,7 @@ data/**/*.txt
 appsettings.*.Local.json
 .env
 .env.*
+!.env.*.example
 
 # ---- Personal notes (not part of the project) ----
 .notes/

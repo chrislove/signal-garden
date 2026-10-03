@@ -19,8 +19,11 @@ namespace SignalGarden.Ingest;
 /// writes — is the normal ADX shape for telemetry.
 ///
 /// Rows go up as CSV in the table's column order, so no ingestion mapping is
-/// needed. Auth uses the Azure CLI login (<c>az login</c>) — fine for a local
-/// learning loop; a deployed worker would use a managed identity instead.
+/// needed. Auth is <see cref="DefaultAzureCredential"/>, so the same code signs
+/// in differently depending on where it runs: a service principal from
+/// <c>AZURE_CLIENT_ID</c>/<c>AZURE_TENANT_ID</c>/<c>AZURE_CLIENT_SECRET</c> in the
+/// home-server container, a managed identity once it moves to Azure, and the
+/// developer's <c>az login</c> on a laptop.
 /// </remarks>
 public sealed class AdxObservationWriter : IDisposable
 {
@@ -30,7 +33,7 @@ public sealed class AdxObservationWriter : IDisposable
     public AdxObservationWriter(string ingestUri, string database, string table)
     {
         var connection = new KustoConnectionStringBuilder(ingestUri)
-            .WithAadAzureTokenCredentialsAuthentication(new AzureCliCredential());
+            .WithAadAzureTokenCredentialsAuthentication(new DefaultAzureCredential());
         _client = KustoIngestFactory.CreateQueuedIngestClient(connection);
         _properties = new KustoQueuedIngestionProperties(database, table)
         {
