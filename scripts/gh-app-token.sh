@@ -31,6 +31,9 @@ jwt="$header.$payload.$signature"
 
 api() { curl -fsS -H "Authorization: Bearer $jwt" -H "Accept: application/vnd.github+json" "$@"; }
 
-installation=$(api "https://api.github.com/repos/$repo/installation" | jq -r .id)
+installation=$(api "https://api.github.com/repos/$repo/installation" 2>/dev/null | jq -r .id) || {
+  echo "$slug is not installed on $repo: https://github.com/apps/$slug/installations/new" >&2
+  exit 1
+}
 api -X POST "https://api.github.com/app/installations/$installation/access_tokens" \
   -d "{\"repositories\":[\"${repo#*/}\"]}" | jq -r .token
