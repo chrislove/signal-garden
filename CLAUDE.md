@@ -99,6 +99,11 @@ cd apps/web && npm start                    # Angular dev server, :4200
 cd apps/web && npm test                     # Karma/Jasmine
 ```
 
+Local config that never goes in the repo lives in .NET user secrets:
+`Api:Adx:QueryUri` (API) and `Ingest:Adx:IngestUri` (ingest). Both authenticate
+with `DefaultAzureCredential` — `az login` locally. The always-on ingest runs in
+Docker via `compose.yaml` (config in a git-ignored `.env.ingest`).
+
 ADX schema (`infra/adx/schema.kql`) is applied by hand in the Data Explorer web
 UI against a `signalgarden` database — there's no migration tooling.
 

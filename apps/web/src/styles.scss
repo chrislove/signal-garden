@@ -1,1 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
+
+// Leaflet builds its DOM outside Angular's view encapsulation, so map tweaks live
+// here. Inverting + rotating hue turns light OSM tiles into a dark basemap.
+.sg-dark-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4);
+}
