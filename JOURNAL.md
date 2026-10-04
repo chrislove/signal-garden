@@ -114,6 +114,12 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
     swapped for OSM tiles with a CSS invert filter.
 - First live read on the map, 7:04 am Monday: 268 vehicles, 97 stopped at a
   stop. The Gold Coast trams turn up too (route `L1`).
+- **Agents became GitHub Apps.** GitHub flagged the two bot machine accounts,
+  so Claude and Codex now act as `claude-chrislove[bot]` / `codex-chrislove[bot]`
+  with 1-hour, repo-scoped tokens (PR #10 was the end-to-end test: Claude's app
+  opened it, Codex's app reviewed, Claude's fixed and resolved). Then rewrote
+  history so every Claude co-author line points at the app: same code, new
+  commit IDs.
 
 ---
 
