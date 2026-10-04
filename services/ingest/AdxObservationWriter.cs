@@ -70,7 +70,9 @@ public sealed class AdxObservationWriter : IDisposable
                 o.Bearing?.ToString("R", CultureInfo.InvariantCulture),
                 o.Speed?.ToString("R", CultureInfo.InvariantCulture),
                 o.CurrentStopSequence?.ToString(CultureInfo.InvariantCulture),
-                Quote(o.Source));
+                Quote(o.Source),
+                Quote(o.StopId),
+                Quote(o.CurrentStatus));
             csv.Append('\n');
         }
         return csv.ToString();

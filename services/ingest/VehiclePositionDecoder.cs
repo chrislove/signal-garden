@@ -51,12 +51,24 @@ public static class VehiclePositionDecoder
                 Bearing = vp.Position.HasBearing ? vp.Position.Bearing : null,
                 Speed = vp.Position.HasSpeed ? vp.Position.Speed : null,
                 CurrentStopSequence = vp.HasCurrentStopSequence ? (int)vp.CurrentStopSequence : null,
+                StopId = NullIfEmpty(vp.StopId),
+                CurrentStatus = vp.HasCurrentStatus ? StatusName(vp.CurrentStatus) : null,
                 Source = Source,
             });
         }
 
         return observations;
     }
+
+    // proto2 enums default to IN_TRANSIT_TO when absent — hence the HasCurrentStatus
+    // check above, so a missing status stays null instead of "moving".
+    private static string StatusName(VehiclePosition.Types.VehicleStopStatus status) => status switch
+    {
+        VehiclePosition.Types.VehicleStopStatus.StoppedAt => "STOPPED_AT",
+        VehiclePosition.Types.VehicleStopStatus.IncomingAt => "INCOMING_AT",
+        VehiclePosition.Types.VehicleStopStatus.InTransitTo => "IN_TRANSIT_TO",
+        _ => status.ToString(),
+    };
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
 }
