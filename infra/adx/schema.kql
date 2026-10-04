@@ -20,13 +20,19 @@
     Bearing: real,
     Speed: real,
     CurrentStopSequence: int,
-    Source: string
+    Source: string,
+    StopId: string,
+    CurrentStatus: string
 )
+
+// Columns added after the table first went live must be appended, never inserted:
+// the worker uploads CSV in column order. On an existing table, apply with:
+// .alter-merge table VehicleObservations (StopId: string, CurrentStatus: string)
 
 // JSON ingestion mapping (OPTIONAL — the ingest worker can also pass the column
 // mapping inline via the SDK). Keep it on ONE line: the ```...``` string
 // delimiter and the JSON must stay together or the web UI parser rejects it.
-.create-or-alter table VehicleObservations ingestion json mapping "VehicleObservations_json" ```[{"column":"EventTime","path":"$.EventTime"},{"column":"IngestionTime","path":"$.IngestionTime"},{"column":"VehicleId","path":"$.VehicleId"},{"column":"TripId","path":"$.TripId"},{"column":"RouteId","path":"$.RouteId"},{"column":"Latitude","path":"$.Latitude"},{"column":"Longitude","path":"$.Longitude"},{"column":"Bearing","path":"$.Bearing"},{"column":"Speed","path":"$.Speed"},{"column":"CurrentStopSequence","path":"$.CurrentStopSequence"},{"column":"Source","path":"$.Source"}]```
+.create-or-alter table VehicleObservations ingestion json mapping "VehicleObservations_json" ```[{"column":"EventTime","path":"$.EventTime"},{"column":"IngestionTime","path":"$.IngestionTime"},{"column":"VehicleId","path":"$.VehicleId"},{"column":"TripId","path":"$.TripId"},{"column":"RouteId","path":"$.RouteId"},{"column":"Latitude","path":"$.Latitude"},{"column":"Longitude","path":"$.Longitude"},{"column":"Bearing","path":"$.Bearing"},{"column":"Speed","path":"$.Speed"},{"column":"CurrentStopSequence","path":"$.CurrentStopSequence"},{"column":"Source","path":"$.Source"},{"column":"StopId","path":"$.StopId"},{"column":"CurrentStatus","path":"$.CurrentStatus"}]```
 
 // Keep the experiment cheap: drop raw data after 30 days.
 .alter-merge table VehicleObservations policy retention softdelete = 30d

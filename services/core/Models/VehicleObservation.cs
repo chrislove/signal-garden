@@ -34,6 +34,20 @@ public sealed record VehicleObservation
 
     public int? CurrentStopSequence { get; init; }
 
+    /// <summary>
+    /// The stop the vehicle is at or heading to. Paired with
+    /// <see cref="CurrentStatus"/> it tells "stopped at a stop" (normal) apart
+    /// from "stopped somewhere else" (interesting).
+    /// </summary>
+    public string? StopId { get; init; }
+
+    /// <summary>
+    /// GTFS-RT stop status, kept as the spec's own names so it reads the same in
+    /// KQL as in the docs: <c>STOPPED_AT</c>, <c>INCOMING_AT</c> or
+    /// <c>IN_TRANSIT_TO</c>.
+    /// </summary>
+    public string? CurrentStatus { get; init; }
+
     /// <summary>Feed identifier, e.g. "translink-seq/vehicle-positions".</summary>
     public required string Source { get; init; }
 }
