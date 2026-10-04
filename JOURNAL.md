@@ -92,6 +92,31 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
 
 ---
 
+## Mon 2026-10-05 — Buses on the map
+
+- Overnight check: the home server ran 23 h without a gap (~2.7 M rows, 16
+  feed timeouts, all retried).
+- Now capturing `stop_id` and `current_status` (`STOPPED_AT` / `IN_TRANSIT_TO`),
+  which the feed sent all along — appended as the last table columns, because
+  the worker uploads CSV in column order.
+- **The whole path works end to end for the first time:**
+  Translink → home server → ADX → .NET API → Angular map.
+  - **API:** `AdxVehicleReadRepository` behind `IVehicleReadRepository` (Kusto
+    stays inside it), KQL with declared query parameters (no string-built
+    queries), and a `LiveVehicleDto` contract that's deliberately not the
+    storage model: no always-null speed/bearing, plus a ready-made `AgeSeconds`
+    freshness value. `/api/vehicles/latest` and `/api/vehicles/{id}/history`.
+  - **Angular:** Leaflet map (canvas renderer, darkened OSM tiles) fed by a
+    polling `VehicleService` signal. Buses coloured by stopped vs moving, stale
+    reports faded, and a failed poll keeps the last known positions on screen
+    (tested). Dev server proxies `/api` to the API.
+  - The dark CARTO basemap I reached for first now needs an API key —
+    swapped for OSM tiles with a CSS invert filter.
+- First live read on the map, 7:04 am Monday: 268 vehicles, 97 stopped at a
+  stop. The Gold Coast trams turn up too (route `L1`).
+
+---
+
 ## The week ahead (planned)
 
 - ☑ **Stand up ADX** — free cluster created, `schema.kql` applied.
@@ -101,7 +126,7 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
 - ☐ **The brain** — aggregate a network state summary, call Jev (network pulse +
   route triage), store the verdict.
 - ☐ **KQL** — latest state, per-vehicle history, an anomaly/pulse timechart.
-- ☐ **Angular** — connect to the API, render the map + charts + live state cards.
+- ◐ **Angular** — map + live vehicle card connected to the API; charts and other cards still to come.
 - ☐ **Second signal + alert** — add another feed or a basic alert rule.
 - ☐ **Weekend** — deploy frontend + ingest to Azure (Static Web Apps, Functions,
   App Insights, Azure DevOps). Set a budget alert first.

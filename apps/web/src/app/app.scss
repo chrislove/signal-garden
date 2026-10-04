@@ -24,6 +24,7 @@
     background: rgba(78, 201, 165, 0.15); color: var(--sg-accent);
     font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
   }
+  .sg-badge--offline { background: rgba(242, 107, 91, 0.15); color: #f26b5b; }
 }
 
 .sg-cards {
@@ -39,12 +40,27 @@
 }
 
 .sg-card .sg-state { margin: 0; font-size: 1.6rem; font-weight: 700; }
+.sg-card .sg-sub { margin: 0.25rem 0 0; color: var(--sg-muted); font-size: 0.8rem; }
+
+.sg-map h2 { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+.sg-legend {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;
+  font-weight: 400; text-transform: none; letter-spacing: 0;
+}
+.sg-dot {
+  display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%;
+  margin-left: 0.5rem;
+  &--moving { background: #4ec9a5; }
+  &--stopped { background: #f2b84b; }
+  &--stale { background: #4ec9a5; opacity: 0.25; }
+}
 
 .sg-grid {
   display: grid; gap: 1rem;
   grid-template-columns: 2fr 1fr;
   grid-template-areas: "map charts" "map timeline";
-  .sg-map { grid-area: map; min-height: 340px; }
+  .sg-map { grid-area: map; min-height: 480px; display: flex; flex-direction: column; }
+  .sg-map sg-vehicle-map { flex: 1; }
   .sg-charts { grid-area: charts; }
   .sg-timeline { grid-area: timeline; }
 }

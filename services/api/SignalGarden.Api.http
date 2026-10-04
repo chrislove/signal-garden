@@ -1,6 +1,21 @@
 @SignalGarden.Api_HostAddress = http://localhost:5049
 
-GET {{SignalGarden.Api_HostAddress}}/weatherforecast/
+GET {{SignalGarden.Api_HostAddress}}/health
+
+###
+
+GET {{SignalGarden.Api_HostAddress}}/api/vehicles/latest
+Accept: application/json
+
+###
+
+# One route — RouteId as the feed sends it (route + schedule version).
+GET {{SignalGarden.Api_HostAddress}}/api/vehicles/latest?routeId=66-4838
+Accept: application/json
+
+###
+
+GET {{SignalGarden.Api_HostAddress}}/api/vehicles/DE58B3C0DF18AF7D25F833371D98199B_1/history?minutes=60
 Accept: application/json
 
 ###
