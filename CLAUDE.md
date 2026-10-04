@@ -54,21 +54,36 @@ when we finish a chunk of work.
 
 ### Commit & PR attribution
 
-Claude and Codex each have their own GitHub bot account (Write collaborators);
-tokens live in git-ignored `.env`. Identities, emails, and the exact git/gh
-recipe are in `.notes/shared/memory.md`. Policy:
+Claude and Codex each act through their own **GitHub App**, installed on this
+repo only: `claude-chrislove[bot]` and `codex-chrislove[bot]`. Private keys live
+in git-ignored `.secrets/github-apps/`; `scripts/gh-app-token.sh claude|codex`
+turns one into a 1-hour token. Policy:
+
+| Agent | Commit identity (name / email) |
+|-------|--------------------------------|
+| Claude | `claude-chrislove[bot] <337864602+claude-chrislove[bot]@users.noreply.github.com>` |
+| Codex | `codex-chrislove[bot] <337864652+codex-chrislove[bot]@users.noreply.github.com>` |
 
 - **Pairing (Chris + agent):** author the commit as **Chris Love
   <chris@christopherlove.au>** and add a `Co-Authored-By:` trailer for the working
-  agent using its **bot noreply email** (not `noreply@anthropic.com`) so its avatar
+  agent using its **bot email above** (not `noreply@anthropic.com`) so its avatar
   shows. This overrides Claude Code's default co-author line.
 - **Autonomous (agent solo on an issue):** author commits, open the PR, and
-  comment/review/resolve **as the bot's own identity** (`GH_TOKEN_CLAUDE` /
-  `GH_TOKEN_CODEX`). Escalate to Chris via review-request/@mention only when a
-  human decision is needed. Agents may review and resolve each other's PRs.
+  comment/review/resolve **as the agent's app**. Escalate to Chris with an
+  @mention only when a human decision is needed (apps can't be assigned as
+  reviewers or receive notifications). Agents may review and resolve each
+  other's PRs; an app can't approve its own.
 
-Never commit or print the PATs; push tokens via an ephemeral URL, never persist
-them in `.git/config`.
+```bash
+export GH_TOKEN=$(scripts/gh-app-token.sh claude)      # gh now acts as the bot
+git -c user.name="claude-chrislove[bot]" \
+    -c user.email="337864602+claude-chrislove[bot]@users.noreply.github.com" commit -m "..."
+git push "https://x-access-token:${GH_TOKEN}@github.com/chrislove/signal-garden.git" HEAD:refs/heads/<branch>
+gh pr create ...
+```
+
+Never commit or print tokens or keys; push via an ephemeral URL like the one
+above, never persist a token in `.git/config`.
 
 ## Data flow
 
