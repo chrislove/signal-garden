@@ -13,6 +13,7 @@ RUN npx ng build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api
 WORKDIR /src
 COPY services/core/ services/core/
+COPY services/decisions/ services/decisions/
 COPY services/api/ services/api/
 RUN dotnet publish services/api -c Release -o /app
 
