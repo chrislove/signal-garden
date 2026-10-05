@@ -1,0 +1,122 @@
+:host {
+  display: block;
+}
+
+.events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+li {
+  border: 1px solid var(--sg-border, #24323a);
+  border-left: 3px solid var(--event-colour);
+  border-radius: 8px;
+  --event-colour: #f26b5b;
+  &[data-code='RFE-001'] {
+    --event-colour: #c9925e;
+  }
+  &[data-code='PAE-001'] {
+    --event-colour: #6ea8ff;
+  }
+  &.selected {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+button {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  padding: 0.6rem 0.75rem;
+  &:focus-visible {
+    outline: 2px solid var(--event-colour);
+    outline-offset: -2px;
+  }
+  strong {
+    flex-basis: 100%;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+  }
+}
+
+.code {
+  font:
+    600 0.7rem ui-monospace,
+    monospace;
+  color: var(--event-colour);
+}
+.meta,
+.context,
+.empty {
+  color: var(--sg-muted, #8aa0ab);
+  font-size: 0.8rem;
+}
+
+.synthetic {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px dashed #f2b84b;
+  color: #f2b84b;
+}
+
+.evidence {
+  margin: 0;
+  padding: 0 0.75rem 0.25rem;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  // Three columns (layer | label | value), with <dt> flattened into the grid.
+  div {
+    display: grid;
+    grid-template-columns: 4.6rem minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: 0.5rem;
+  }
+  dt {
+    display: contents;
+    color: var(--sg-muted, #8aa0ab);
+  }
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .pending {
+    color: var(--sg-muted, #8aa0ab);
+    font-style: italic;
+  }
+}
+
+.layer {
+  padding-top: 0.15rem;
+  font:
+    600 0.6rem ui-monospace,
+    monospace;
+  letter-spacing: 0.04em;
+  &.observed {
+    color: #4ec9a5;
+  }
+  &.derived {
+    color: #f2b84b;
+  }
+  &.inferred {
+    color: #b38cff;
+  }
+}
+
+.action {
+  margin: 0.25rem 0.75rem 0.7rem;
+  font-size: 0.8rem;
+}
+.context {
+  margin: 0.75rem 0 0;
+}

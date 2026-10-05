@@ -1,0 +1,48 @@
+@if (loaded() && events().length === 0) {
+  <p class="empty">No events. The network is behaving itself.</p>
+}
+
+<ol class="events">
+  @for (e of events(); track e.id) {
+    <li [class.selected]="e.id === selectedId()" [attr.data-code]="e.code">
+      <button type="button" (click)="toggle(e.id)" [attr.aria-expanded]="e.id === selectedId()">
+        <span class="code">{{ e.code }}</span>
+        @if (e.synthetic) {
+          <span class="synthetic" title="Staged demo scenario, not observed">Synthetic</span>
+        }
+        <strong>{{ e.title }}</strong>
+        <span class="meta">
+          Route {{ e.route ?? '?' }} · {{ minutes(e) }} min · since {{ e.since | date: 'HH:mm' }}
+        </span>
+      </button>
+
+      @if (e.id === selectedId()) {
+        <dl class="evidence">
+          @for (x of e.evidence; track x.label) {
+            <div>
+              <dt>
+                <span class="layer {{ x.layer | lowercase }}">{{ x.layer }}</span>
+                <span>{{ x.label }}</span>
+              </dt>
+              <dd>{{ x.value }}</dd>
+            </div>
+          }
+          <div>
+            <dt><span class="layer inferred">INFERRED</span><span>Assessment</span></dt>
+            <dd class="pending">Not yet assessed</dd>
+          </div>
+        </dl>
+        <p class="action">
+          Recommended action: <strong>{{ e.recommendedAction }}</strong>
+        </p>
+      }
+    </li>
+  }
+</ol>
+
+@if (loaded()) {
+  <p class="context">
+    {{ vesselsInWater() }} vessels in the river, operating as intended ·
+    {{ vehiclesOnBridges() }} vehicles crossing bridges
+  </p>
+}

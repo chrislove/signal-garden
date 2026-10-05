@@ -1,4 +1,5 @@
 using SignalGarden.Api.Adx;
+using SignalGarden.Api.Demo;
 using SignalGarden.Core.Abstractions;
 using SignalGarden.Core.Contracts;
 
@@ -21,11 +22,16 @@ builder.Services.AddCors(options =>
 var queryUri = builder.Configuration["Api:Adx:QueryUri"];
 if (!string.IsNullOrWhiteSpace(queryUri))
 {
-    builder.Services.AddSingleton<IVehicleReadRepository>(_ => new AdxVehicleReadRepository(
-        queryUri,
-        builder.Configuration["Api:Adx:Database"] ?? "signalgarden",
+    builder.Services.AddSingleton(_ => new AdxQueryClient(
+        queryUri, builder.Configuration["Api:Adx:Database"] ?? "signalgarden"));
+    builder.Services.AddSingleton<IVehicleReadRepository>(sp => new AdxVehicleReadRepository(
+        sp.GetRequiredService<AdxQueryClient>(),
         TimeSpan.FromMinutes(builder.Configuration.GetValue("Api:LatestWindowMinutes", 10))));
+    builder.Services.AddSingleton(
+        builder.Configuration.GetSection("Api:Events").Get<EventDetectionOptions>() ?? new EventDetectionOptions());
+    builder.Services.AddSingleton<IEventDetector, AdxEventDetector>();
 }
+var syntheticEvents = builder.Configuration.GetValue("Api:Demo:SyntheticEvents", false);
 
 var app = builder.Build();
 
@@ -70,6 +76,18 @@ app.MapGet("/api/vehicles/{vehicleId}/history", async (
     return Results.Ok(observations.Select(o => LiveVehicleDto.From(o, now)));
 })
 .WithName("GetVehicleHistory");
+
+// Current operational events (refreshment, aquatic transfer) with their evidence.
+app.MapGet("/api/events", async (IServiceProvider services, CancellationToken cancellationToken) =>
+{
+    if (services.GetService<IEventDetector>() is not { } detector) return NotConfigured();
+
+    var scan = await detector.DetectAsync(cancellationToken);
+    if (syntheticEvents)
+        scan = scan with { Events = [SyntheticEvents.AquaticTransfer(scan.ScannedAt), .. scan.Events] };
+    return Results.Ok(EventsResponseDto.From(scan));
+})
+.WithName("GetEvents");
 
 app.Run();
 

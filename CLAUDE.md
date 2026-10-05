@@ -119,6 +119,12 @@ Local config that never goes in the repo lives in .NET user secrets:
 with `DefaultAzureCredential` — `az login` locally. The always-on ingest runs in
 Docker via `compose.yaml` (config in a git-ignored `.env.ingest`).
 
+OpenStreetMap reference layers (cafés, waterways, bridges) are loaded into ADX
+with `python3 infra/adx/reference/load_osm_reference.py` (re-runnable; needs
+`az login` and Node for `npx osmtogeojson`). The API's dev config stages one
+SYNTHETIC event (`Api:Demo:SyntheticEvents`) — synthetic events must always be
+labelled as such.
+
 ADX schema (`infra/adx/schema.kql`) is applied by hand in the Data Explorer web
 UI against a `signalgarden` database — there's no migration tooling.
 

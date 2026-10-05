@@ -120,6 +120,27 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
   opened it, Codex's app reviewed, Claude's fixed and resolved). Then rewrote
   history so every Claude co-author line points at the app: same code, new
   commit IDs.
+- **Events: coffee and the river.** The dashboard now raises operational
+  events, with the evidence that produced them:
+  - **RFE-001 Possible Refreshment Event:** stationary 5+ min, *not* at a stop,
+    within 50 m of a café. First real batch: Route 348, 18.5 min, 34 m from
+    Cook & Co.; Route 412 near Frankie and George; Route 375, 25 m from Ant Bowl.
+  - **PAE-001 Possible Aquatic Transfer Event:** reported position inside a
+    river polygon — unless it's a ferry route (15 CityCats, "operating as
+    intended") or within 30 m of a bridge.
+  - All spatial work happens in KQL: S2-cell join for cafés, point-in-polygon
+    for water, point-to-line distance for bridges. ~0.2 s per scan.
+  - Reference layers from OpenStreetMap (1,809 cafés, 95 waterways, 189
+    bridges) via a re-runnable loader (`infra/adx/reference/`).
+  - Evidence is labelled OBSERVED / DERIVED / INFERRED (inferred = Jev, later).
+  - A staged PAE-001 (Route 199, mid-river at New Farm) for demos, always
+    labelled SYNTHETIC, dev only.
+- **The first real PAE-001 was a false positive, and the evidence trail found
+  it:** a train "in" Kedron Brook, nearest bridge 3.2 km. The bridge layer only
+  covered rivers, not canals, so the Airtrain bridge was missing. Fixed the
+  loader; the point is now 1.9 m from a rail bridge.
+- KQL gotcha: `latest` is a reserved word. `let latest = …` fails with nothing
+  but "Request is invalid".
 
 ---
 

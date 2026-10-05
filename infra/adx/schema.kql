@@ -43,6 +43,21 @@
 .alter table VehicleObservations policy ingestionbatching '{"MaximumBatchingTimeSpan":"00:00:30","MaximumNumberOfItems":500,"MaximumRawDataSizeMB":1024}'
 
 // ---------------------------------------------------------------------------
+// 1b. Reference layers from OpenStreetMap (© OpenStreetMap contributors, ODbL).
+//     Loaded and refreshed by infra/adx/reference/load_osm_reference.py.
+//     Geometry is GeoJSON, as ADX's geo_* functions expect.
+// ---------------------------------------------------------------------------
+.create-merge table Cafes (OsmId: string, Name: string, Latitude: real, Longitude: real)
+
+.create-merge table WaterBodies (OsmId: string, Name: string, Kind: string, Geometry: dynamic)
+
+.create-merge table Bridges (OsmId: string, Name: string, Kind: string, Geometry: dynamic)
+
+// The loader replaces each table's contents, which needs table-admin rights:
+// .add table Cafes admins ('aaduser=<object-id>;<tenant-id>') 'OSM reference loader'
+// (and the same for WaterBodies and Bridges)
+
+// ---------------------------------------------------------------------------
 // 2. Query functions (back the API's IVehicleReadRepository).
 // ---------------------------------------------------------------------------
 

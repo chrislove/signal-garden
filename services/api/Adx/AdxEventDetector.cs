@@ -1,0 +1,201 @@
+using System.Data;
+using System.Globalization;
+using SignalGarden.Core.Abstractions;
+using SignalGarden.Core.Models;
+
+namespace SignalGarden.Api.Adx;
+
+/// <summary>
+/// Detects operational events with KQL: ADX joins recent vehicle reports against
+/// the OpenStreetMap reference layers (cafés, river polygons, bridges) and hands
+/// back candidates with the numbers that justify them.
+/// </summary>
+/// <remarks>
+/// Everything here is deterministic — distances, dwell times, point-in-polygon.
+/// Judgement ("is this really a coffee break?") is a later, separate layer.
+/// Note <c>latest</c> is a reserved word in KQL, hence <c>current</c> below.
+/// </remarks>
+public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions options) : IEventDetector
+{
+    // RFE-001: stationary for a while, not at a stop, within a short walk of a café.
+    private const string RefreshmentQuery = """
+        declare query_parameters(lookback:timespan, minDwell:timespan, stillRadius:real, cafeRadius:real);
+        // Reports in the window, with the worker's repeat-sends collapsed.
+        let recent = VehicleObservations
+            | where EventTime > ago(lookback)
+            | summarize arg_min(IngestionTime, *) by VehicleId, EventTime;
+        // Where each vehicle is now (only vehicles that reported in the last 3 minutes).
+        let current = recent
+            | summarize arg_max(EventTime, *) by VehicleId
+            | where EventTime > ago(3m)
+            | project VehicleId, LastTime = EventTime, LastLat = Latitude, LastLon = Longitude,
+                      RouteId, TripId, LastStopId = StopId, LastStatus = CurrentStatus;
+        // How long has it been within stillRadius of where it is now?
+        let dwelling = recent
+            | join kind=inner current on VehicleId
+            | extend Away = geo_distance_2points(Longitude, Latitude, LastLon, LastLat)
+            | summarize LastAway = maxif(EventTime, Away > stillRadius), FirstSeen = min(EventTime),
+                        Reports = count()
+                  by VehicleId, LastTime, LastLat, LastLon, RouteId, TripId, LastStopId, LastStatus
+            | extend StillSince = iff(isnull(LastAway), FirstSeen, LastAway)
+            | extend Dwell = LastTime - StillSince
+            | where Dwell >= minDwell and LastStatus != "STOPPED_AT"
+            | extend Cell = geo_point_to_s2cell(LastLon, LastLat, 16);
+        // Cafés indexed by S2 cell *and* its neighbours (~150 m cells), so joining on
+        // cell finds every café in range without comparing each vehicle with all of them.
+        let cafes = Cafes
+            | extend Cell = geo_point_to_s2cell(Longitude, Latitude, 16)
+            | mv-expand Cell = array_concat(pack_array(Cell), geo_s2cell_neighbors(Cell)) to typeof(string);
+        dwelling
+        | join kind=inner cafes on Cell
+        | extend CafeDistance = geo_distance_2points(LastLon, LastLat, Longitude, Latitude)
+        | where CafeDistance <= cafeRadius
+        | summarize arg_min(CafeDistance, CafeName = Name)
+              by VehicleId, LastTime, LastLat, LastLon, RouteId, LastStopId, LastStatus, StillSince, Dwell, Reports
+        """;
+
+    // PAE-001: reported position inside a river polygon — unless it's a ferry, or on a bridge.
+    private const string AquaticQuery = """
+        declare query_parameters(bridgeRadius:real);
+        let current = VehicleObservations
+            | where EventTime > ago(3m)
+            | summarize arg_max(EventTime, *) by VehicleId;
+        // ~800 vehicles x ~95 polygons is small enough to simply test them all.
+        let wet = current
+            | extend k = 1
+            | join kind=inner (WaterBodies | project WaterName = Name, Geometry, k = 1) on k
+            | where geo_point_in_polygon(Longitude, Latitude, Geometry)
+            | project-away k*, Geometry;
+        // A vehicle "in" the river is usually on a bridge over it: find the nearest one.
+        let nearestBridge = wet
+            | extend k = 1
+            | join kind=inner (Bridges | project BridgeName = Name, Line = Geometry, k = 1) on k
+            | extend BridgeDistance = geo_distance_point_to_line(Longitude, Latitude, Line)
+            | summarize arg_min(BridgeDistance, BridgeName) by VehicleId;
+        wet
+        | join kind=leftouter nearestBridge on VehicleId
+        | extend Classification = case(
+              RouteId startswith "F", "VESSEL",
+              isnotnull(BridgeDistance) and BridgeDistance <= bridgeRadius, "BRIDGE",
+              "AQUATIC")
+        | project VehicleId, EventTime, Latitude, Longitude, RouteId, StopId, CurrentStatus,
+                  WaterName, BridgeName, BridgeDistance, Classification
+        """;
+
+    public async Task<EventScan> DetectAsync(CancellationToken cancellationToken = default)
+    {
+        var refreshment = adx.QueryAsync(RefreshmentQuery, new Dictionary<string, object>
+        {
+            ["lookback"] = options.Lookback,
+            ["minDwell"] = options.MinDwell,
+            ["stillRadius"] = options.StillRadiusMetres,
+            ["cafeRadius"] = options.CafeRadiusMetres,
+        }, ToRefreshmentEvent, cancellationToken);
+
+        var aquatic = adx.QueryAsync(AquaticQuery, new Dictionary<string, object>
+        {
+            ["bridgeRadius"] = options.BridgeRadiusMetres,
+        }, ReadAquatic, cancellationToken);
+
+        await Task.WhenAll(refreshment, aquatic);
+
+        var wet = aquatic.Result;
+        var events = refreshment.Result
+            .Concat(wet.Where(w => w.Classification == "AQUATIC").Select(w => w.Event))
+            .OrderByDescending(e => e.LastSeen - e.Since)
+            .ToList();
+
+        return new EventScan(
+            events,
+            VesselsInWater: wet.Count(w => w.Classification == "VESSEL"),
+            VehiclesOnBridges: wet.Count(w => w.Classification == "BRIDGE"),
+            ScannedAt: DateTimeOffset.UtcNow);
+    }
+
+    private OperationalEvent ToRefreshmentEvent(IDataReader r)
+    {
+        var vehicleId = r.GetString(r.GetOrdinal("VehicleId"));
+        var since = r.Utc("StillSince");
+        var lastSeen = r.Utc("LastTime");
+        var dwell = r.Span("Dwell");
+        var lat = r.GetDouble(r.GetOrdinal("LastLat"));
+        var lon = r.GetDouble(r.GetOrdinal("LastLon"));
+        var status = r.StringOrNull("LastStatus");
+
+        return new OperationalEvent
+        {
+            Id = $"RFE-001:{vehicleId}:{since:O}",
+            Code = "RFE-001",
+            Title = "POSSIBLE REFRESHMENT EVENT",
+            VehicleId = vehicleId,
+            RouteId = r.StringOrNull("RouteId"),
+            Latitude = lat,
+            Longitude = lon,
+            Since = since,
+            LastSeen = lastSeen,
+            RecommendedAction = "Monitor until departure",
+            Evidence =
+            [
+                new(EvidenceLayer.Observed, "Reported position", Position(lat, lon)),
+                new(EvidenceLayer.Observed, "Stop status", status ?? "not reported"),
+                new(EvidenceLayer.Observed, "Reports in window", r.GetInt64(r.GetOrdinal("Reports")).ToString(CultureInfo.InvariantCulture)),
+                new(EvidenceLayer.Derived, "Stationary",
+                    $"{dwell.TotalMinutes:0.0} min within {options.StillRadiusMetres:0} m"),
+                new(EvidenceLayer.Derived, "At a stop", "No"),
+                new(EvidenceLayer.Derived, "Nearest café",
+                    $"{r.GetString(r.GetOrdinal("CafeName"))} ({r.GetDouble(r.GetOrdinal("CafeDistance")):0} m)"),
+            ],
+        };
+    }
+
+    private sealed record WetVehicle(string Classification, OperationalEvent Event);
+
+    private static WetVehicle ReadAquatic(IDataReader r)
+    {
+        var vehicleId = r.GetString(r.GetOrdinal("VehicleId"));
+        var seen = r.Utc("EventTime");
+        var lat = r.GetDouble(r.GetOrdinal("Latitude"));
+        var lon = r.GetDouble(r.GetOrdinal("Longitude"));
+        var bridge = r.StringOrNull("BridgeName");
+        var bridgeDistance = r.DoubleOrNull("BridgeDistance");
+
+        var evt = new OperationalEvent
+        {
+            Id = $"PAE-001:{vehicleId}:{seen:O}",
+            Code = "PAE-001",
+            Title = "POSSIBLE AQUATIC TRANSFER EVENT",
+            VehicleId = vehicleId,
+            RouteId = r.StringOrNull("RouteId"),
+            Latitude = lat,
+            Longitude = lon,
+            Since = seen,
+            LastSeen = seen,
+            RecommendedAction = "Further investigation",
+            Evidence =
+            [
+                new(EvidenceLayer.Observed, "Reported position", Position(lat, lon)),
+                new(EvidenceLayer.Observed, "Stop status", r.StringOrNull("CurrentStatus") ?? "not reported"),
+                new(EvidenceLayer.Derived, "Waterway relationship",
+                    $"Inside {r.StringOrNull("WaterName") ?? "unnamed waterway"}"),
+                new(EvidenceLayer.Derived, "Nearest vehicle bridge", bridgeDistance is { } d
+                    ? $"{(string.IsNullOrEmpty(bridge) ? "unnamed" : bridge)} ({d:0} m)"
+                    : "none found"),
+                new(EvidenceLayer.Derived, "Vessel route", "No"),
+            ],
+        };
+        return new WetVehicle(r.GetString(r.GetOrdinal("Classification")), evt);
+    }
+
+    private static string Position(double lat, double lon) =>
+        string.Create(CultureInfo.InvariantCulture, $"{lat:0.00000}, {lon:0.00000}");
+}
+
+/// <summary>Detection thresholds. Defaults are a first guess — tune them in config.</summary>
+public sealed record EventDetectionOptions
+{
+    public TimeSpan Lookback { get; init; } = TimeSpan.FromMinutes(20);
+    public TimeSpan MinDwell { get; init; } = TimeSpan.FromMinutes(5);
+    public double StillRadiusMetres { get; init; } = 40;
+    public double CafeRadiusMetres { get; init; } = 50;
+    public double BridgeRadiusMetres { get; init; } = 30;
+}

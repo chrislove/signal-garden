@@ -1,5 +1,5 @@
-<!-- Signal Garden dashboard shell. The map and vehicle card are live; the other
-     regions are placeholders wired to real data in later steps. -->
+<!-- Signal Garden dashboard shell. The map, vehicle and alert cards, and the
+     event timeline are live; the rest are placeholders for later steps. -->
 <div class="sg-shell">
   <header class="sg-header">
     <span class="sg-logo">🌱</span>
@@ -32,8 +32,11 @@
       }
     </article>
     <article class="sg-card">
-      <h2>Alerts</h2>
-      <p class="sg-state">—</p>
+      <h2>Events</h2>
+      <p class="sg-state">{{ eventsLoaded() ? events().length : '—' }}</p>
+      @if (syntheticCount()) {
+        <p class="sg-sub">incl. {{ syntheticCount() }} synthetic</p>
+      }
     </article>
   </section>
 
@@ -47,19 +50,32 @@
           <i class="sg-dot sg-dot--stale"></i> report &gt; 2 min old
         </span>
       </h2>
-      <sg-vehicle-map [vehicles]="vehicles()" />
+      <sg-vehicle-map
+        [vehicles]="vehicles()"
+        [events]="events()"
+        [selectedEventId]="selectedEventId()"
+        (eventSelected)="selectedEventId.set($event)"
+      />
+    </div>
+    <div class="sg-panel sg-timeline">
+      <h2>Events</h2>
+      <sg-event-timeline
+        [events]="events()"
+        [selectedId]="selectedEventId()"
+        [vesselsInWater]="eventScan().vesselsInWater"
+        [vehiclesOnBridges]="eventScan().vehiclesOnBridges"
+        [loaded]="eventsLoaded()"
+        (selected)="selectedEventId.set($event)"
+      />
     </div>
     <div class="sg-panel sg-charts">
       <h2>Time series</h2>
       <p class="sg-placeholder">Delays / active-vehicle pulse charts.</p>
     </div>
-    <div class="sg-panel sg-timeline">
-      <h2>Event timeline</h2>
-      <p class="sg-placeholder">Alerts and notable events, newest first.</p>
-    </div>
   </main>
 
   <footer class="sg-footer">
-    Data © Translink (Queensland), CC BY 4.0. Map © OpenStreetMap contributors.
+    Data © Translink (Queensland), CC BY 4.0. Map, cafés and waterways © OpenStreetMap contributors
+    (ODbL).
   </footer>
 </div>

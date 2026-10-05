@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalGarden.Decisions.Tests", "tests\SignalGarden.Decisions.Tests\SignalGarden.Decisions.Tests.csproj", "{4FEA36FA-5B2E-4583-83C0-A798AF6A7310}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalGarden.Api.Tests", "tests\SignalGarden.Api.Tests\SignalGarden.Api.Tests.csproj", "{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,6 +97,18 @@ Global
 		{4FEA36FA-5B2E-4583-83C0-A798AF6A7310}.Release|x64.Build.0 = Release|Any CPU
 		{4FEA36FA-5B2E-4583-83C0-A798AF6A7310}.Release|x86.ActiveCfg = Release|Any CPU
 		{4FEA36FA-5B2E-4583-83C0-A798AF6A7310}.Release|x86.Build.0 = Release|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Debug|x64.Build.0 = Debug|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Debug|x86.Build.0 = Debug|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Release|x64.ActiveCfg = Release|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Release|x64.Build.0 = Release|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Release|x86.ActiveCfg = Release|Any CPU
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -109,5 +123,6 @@ Global
 		{0F42F833-4CFD-8811-AC53-E054C40F67AA} = {5854FF58-B8C5-05C6-5BF2-ACE42193F22B}
 		{0976CEF6-2E22-4276-BD16-9E6ED4DC7D88} = {0F42F833-4CFD-8811-AC53-E054C40F67AA}
 		{4FEA36FA-5B2E-4583-83C0-A798AF6A7310} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{EB16F25B-17A6-4FF6-B117-5E5BF534AC7B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

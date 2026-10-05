@@ -2,7 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed, discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
 import { LiveVehicle } from './live-vehicle';
-import { POLL_INTERVAL_MS, VehicleService } from './vehicle.service';
+import { POLL_INTERVAL_MS } from '../shared/poll';
+import { VehicleService } from './vehicle.service';
 
 const BUS: LiveVehicle = {
   vehicleId: 'v1',
@@ -32,11 +33,11 @@ describe('VehicleService', () => {
     service.snapshot(); // reading the signal subscribes
     tick(0);
     http.expectOne('/api/vehicles/latest').flush([BUS]);
-    expect(service.snapshot().vehicles).toEqual([BUS]);
+    expect(service.snapshot().data).toEqual([BUS]);
 
     tick(POLL_INTERVAL_MS);
     http.expectOne('/api/vehicles/latest').flush([]);
-    expect(service.snapshot().vehicles).toEqual([]);
+    expect(service.snapshot().data).toEqual([]);
     discardPeriodicTasks();
   }));
 
@@ -51,7 +52,7 @@ describe('VehicleService', () => {
       .expectOne('/api/vehicles/latest')
       .flush('down', { status: 503, statusText: 'Service Unavailable' });
 
-    expect(service.snapshot().vehicles).toEqual([BUS]);
+    expect(service.snapshot().data).toEqual([BUS]);
     expect(service.snapshot().error).toBeTruthy();
     discardPeriodicTasks();
   }));
