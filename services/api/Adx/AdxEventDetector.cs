@@ -18,7 +18,8 @@ namespace SignalGarden.Api.Adx;
 /// </remarks>
 public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions options) : IEventDetector
 {
-    // RFE-001: stationary for a while, not at a stop, within a short walk of a café.
+    // RFE-001: stationary for a while, not reported at a stop, within a short walk
+    // of a café — with where that is relative to the vehicle's own route.
     private const string RefreshmentQuery = """
         declare query_parameters(lookback:timespan, minDwell:timespan, stillRadius:real, cafeRadius:real);
         // Reports in the window, with the worker's repeat-sends collapsed.
@@ -47,12 +48,31 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
         let cafes = Cafes
             | extend Cell = geo_point_to_s2cell(Longitude, Latitude, 16)
             | mv-expand Cell = array_concat(pack_array(Cell), geo_s2cell_neighbors(Cell)) to typeof(string);
-        dwelling
-        | join kind=inner cafes on Cell
-        | extend CafeDistance = geo_distance_2points(LastLon, LastLat, Longitude, Latitude)
-        | where CafeDistance <= cafeRadius
-        | summarize arg_min(CafeDistance, CafeName = Name)
-              by VehicleId, LastTime, LastLat, LastLon, RouteId, LastStopId, LastStatus, StillSince, Dwell, Reports
+        let candidates = dwelling
+            | join kind=inner cafes on Cell
+            | extend CafeDistance = geo_distance_2points(LastLon, LastLat, Longitude, Latitude)
+            | where CafeDistance <= cafeRadius
+            | summarize arg_min(CafeDistance, CafeName = Name)
+                  by VehicleId, LastTime, LastLat, LastLon, RouteId, TripId, LastStopId, LastStatus, StillSince, Dwell, Reports;
+        // Where is it relative to its *own* route? Every stop the route serves
+        // (static GTFS), measured from the vehicle: the nearest one, and the
+        // nearest terminus (first/last stop of any of the route's trips).
+        let routeStops = candidates
+            | project VehicleId, RouteId, LastLat, LastLon
+            | join kind=inner RouteStops on RouteId
+            | join kind=inner (Stops | project StopId, StopName = Name, StopLat = Latitude, StopLon = Longitude) on StopId
+            | extend StopDistance = geo_distance_2points(LastLon, LastLat, StopLon, StopLat);
+        let nearestStop = routeStops
+            | summarize arg_min(StopDistance, NearestStopName = StopName) by VehicleId
+            | project VehicleId, NearestStopDistance = StopDistance, NearestStopName;
+        let nearestTerminus = routeStops
+            | where IsTerminus
+            | summarize arg_min(StopDistance, TerminusName = StopName) by VehicleId
+            | project VehicleId, TerminusDistance = StopDistance, TerminusName;
+        candidates
+        | join kind=leftouter nearestStop on VehicleId
+        | join kind=leftouter nearestTerminus on VehicleId
+        | project-away VehicleId1, VehicleId2
         """;
 
     // PAE-001: reported position inside a river polygon — unless it's a ferry, or on a bridge.
@@ -126,6 +146,15 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
         var cafeDistance = r.GetDouble(r.GetOrdinal("CafeDistance"));
         var reports = r.GetInt64(r.GetOrdinal("Reports"));
         var routeId = r.StringOrNull("RouteId");
+        var tripId = r.StringOrNull("TripId");
+        var stopDistance = r.DoubleOrNull("NearestStopDistance");
+        var stopName = r.StringOrNull("NearestStopName");
+        var terminusDistance = r.DoubleOrNull("TerminusDistance");
+        var terminusName = r.StringOrNull("TerminusName");
+        // The feed's status only says what the vehicle reported; geometry says
+        // whether it's actually standing at one of its route's stops.
+        bool? atRouteStop = stopDistance is { } sd ? sd <= options.AtStopRadiusMetres : null;
+        var unplanned = tripId?.StartsWith("UNPLANNED", StringComparison.Ordinal) == true;
 
         return new OperationalEvent
         {
@@ -143,8 +172,14 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
             {
                 ["route"] = routeId?.Split('-')[0],
                 ["stationary_minutes"] = Math.Round(dwell.TotalMinutes, 1),
-                ["at_a_stop"] = false,
+                ["reported_at_a_stop"] = false,
                 ["stop_status"] = status,
+                ["at_a_stop_on_its_route"] = atRouteStop,
+                ["nearest_route_stop"] = stopName,
+                ["nearest_route_stop_m"] = stopDistance is { } d1 ? Math.Round(d1) : null,
+                ["nearest_route_terminus"] = terminusName,
+                ["nearest_route_terminus_m"] = terminusDistance is { } d2 ? Math.Round(d2) : null,
+                ["unplanned_trip"] = unplanned,
                 ["nearest_cafe"] = cafeName,
                 ["cafe_distance_m"] = Math.Round(cafeDistance),
                 ["position_reports_in_window"] = reports,
@@ -156,7 +191,16 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
                 new(EvidenceLayer.Observed, "Reports in window", reports.ToString(CultureInfo.InvariantCulture)),
                 new(EvidenceLayer.Derived, "Stationary",
                     $"{dwell.TotalMinutes:0.0} min within {options.StillRadiusMetres:0} m"),
-                new(EvidenceLayer.Derived, "At a stop", "No"),
+                new(EvidenceLayer.Observed, "Trip", unplanned ? "Unplanned (not in the timetable)" : "Timetabled"),
+                new(EvidenceLayer.Derived, "At a stop on its route", (atRouteStop, stopName, stopDistance) switch
+                {
+                    (null, _, _) => "unknown (route not in timetable)",
+                    (true, var n, var d) => $"Yes: {n} ({d:0} m)",
+                    (false, var n, var d) => $"No: nearest is {n} ({d:0} m)",
+                }),
+                new(EvidenceLayer.Derived, "Route terminus", terminusDistance is { } td
+                    ? $"{terminusName} ({Distance(td)})"
+                    : "unknown"),
                 new(EvidenceLayer.Derived, "Nearest café", $"{cafeName} ({cafeDistance:0} m)"),
             ],
         };
@@ -211,6 +255,9 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
         return new WetVehicle(r.GetString(r.GetOrdinal("Classification")), evt);
     }
 
+    private static string Distance(double metres) =>
+        metres < 1000 ? $"{metres:0} m" : string.Create(CultureInfo.InvariantCulture, $"{metres / 1000:0.0} km");
+
     private static string Position(double lat, double lon) =>
         string.Create(CultureInfo.InvariantCulture, $"{lat:0.00000}, {lon:0.00000}");
 }
@@ -223,4 +270,7 @@ public sealed record EventDetectionOptions
     public double StillRadiusMetres { get; init; } = 40;
     public double CafeRadiusMetres { get; init; } = 50;
     public double BridgeRadiusMetres { get; init; } = 30;
+
+    /// <summary>Within this of one of its route's stops, a vehicle counts as "at a stop".</summary>
+    public double AtStopRadiusMetres { get; init; } = 30;
 }

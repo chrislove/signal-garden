@@ -181,6 +181,30 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
 
 ---
 
+## Tue 2026-10-06 — Where is it on its own route?
+
+- **Chris gave Claude permission to create tables** in the `signalgarden` ADX
+  database: its `az` CLI identity now has the Database **User** role (create
+  and load tables; it can't change permissions or touch other databases).
+  It saves a "please paste this" round trip for each new reference table.
+- **New facts from Translink's static timetable (GTFS).** The realtime feed
+  only carries IDs; the timetable says where every stop is and which stops
+  each route serves. A loader (`infra/adx/reference/load_gtfs_reference.py`)
+  turns the 35 MB schedule into two small tables in 7 s: `Stops` (13k) and
+  `RouteStops` (40k pairs, flagging each route's termini).
+  - Every live route and stop ID matched the timetable; 93% of trips did. The
+    rest are `UNPLANNED-…` extra services, which is now a fact of its own.
+- Refreshment events now say where the vehicle is **relative to its own
+  route**: at one of its stops or not (within 30 m, whatever the feed's status
+  says), and how far it is from the route's nearest terminus. Jev gets the same
+  facts, so it can finally tell a layover from a coffee.
+- First look, 5 am: Route 19, still for 3 min, 9 m from its terminus at Rocklea
+  (a textbook layover); Route 126, still for 12 min, **394 m from any of its
+  stops**, near a Zarraffa's (the interesting one); a Nambour train standing
+  at Landsborough platform 2.
+
+---
+
 ## The week ahead (planned)
 
 - ☑ **Stand up ADX** — free cluster created, `schema.kql` applied.
