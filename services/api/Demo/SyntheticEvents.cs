@@ -30,6 +30,18 @@ public static class SyntheticEvents
         LastSeen = now,
         RecommendedAction = "Further investigation",
         Synthetic = true,
+        Facts = new Dictionary<string, object?>
+        {
+            ["route"] = "199",
+            ["inside_water_body"] = "Brisbane River",
+            ["nearest_vehicle_bridge"] = "Story Bridge",
+            ["nearest_bridge_distance_m"] = 704,
+            ["is_ferry_route"] = false,
+            ["stop_status"] = "IN_TRANSIT_TO",
+            ["minutes_in_water"] = 6,
+            ["velocity_kmh"] = 4.2,
+            ["direction"] = "downstream",
+        },
         Evidence =
         [
             new(EvidenceLayer.Observed, "Reported position", $"{Lat:0.00000}, {Lon:0.00000}"),

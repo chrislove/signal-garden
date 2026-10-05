@@ -165,6 +165,19 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
   - First container build was a blank page: routing ran before static files,
     so `main.js` came back as `index.html`. Fixed, with in-memory hosting tests
     that fail on the old code.
+- **Jev fills in the INFERRED layer.** Each event goes to Jev once, with its
+  raw facts plus local time, as a `choice` between explanations it can't add to:
+  refreshment / layover / traffic / breakdown / data anomaly for RFE-001, and
+  genuinely in the water / GPS error / bridge missing from the map / unrecognised
+  ferry for PAE-001. The dashboard shows the pick, the model's confidence, and
+  every option as a probability bar.
+  - Cached per event (one call each, shared by every viewer); a request waits at
+    most 2.5 s, so slow answers arrive on the next poll; failures never break
+    the scan. Tests use a fake Jev, including a slow and a broken one.
+  - First verdicts: real café stops come back "Refreshment ~80%". The staged bus
+    in the river: **GPS anomaly 43% vs genuinely in the water 43%, confidence
+    0.24**. The model is honestly torn, and the UI shows that rather than
+    hiding it.
 
 ---
 

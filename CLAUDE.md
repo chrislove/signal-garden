@@ -115,7 +115,8 @@ cd apps/web && npm test                     # Karma/Jasmine
 ```
 
 Local config that never goes in the repo lives in .NET user secrets:
-`Api:Adx:QueryUri` (API) and `Ingest:Adx:IngestUri` (ingest). Both authenticate
+`Api:Adx:QueryUri` and `TYPESAFE_API_KEY` (API; the key lets Jev assess events)
+and `Ingest:Adx:IngestUri` (ingest). Both authenticate
 with `DefaultAzureCredential` — `az login` locally. The always-on ingest runs in
 Docker via `compose.yaml` (config in a git-ignored `.env.ingest`).
 

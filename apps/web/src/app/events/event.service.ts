@@ -7,6 +7,7 @@ const NO_EVENTS: EventsResponse = {
   vesselsInWater: 0,
   vehiclesOnBridges: 0,
   scannedAt: '',
+  assessmentEnabled: false,
 };
 
 /** Current operational events from the API, refreshed every poll. */

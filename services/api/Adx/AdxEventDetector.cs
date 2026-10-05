@@ -12,7 +12,8 @@ namespace SignalGarden.Api.Adx;
 /// </summary>
 /// <remarks>
 /// Everything here is deterministic — distances, dwell times, point-in-polygon.
-/// Judgement ("is this really a coffee break?") is a later, separate layer.
+/// Judgement ("is this really a coffee break?") is a separate layer: see
+/// <see cref="IEventAssessor"/>.
 /// Note <c>latest</c> is a reserved word in KQL, hence <c>current</c> below.
 /// </remarks>
 public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions options) : IEventDetector
@@ -121,6 +122,10 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
         var lat = r.GetDouble(r.GetOrdinal("LastLat"));
         var lon = r.GetDouble(r.GetOrdinal("LastLon"));
         var status = r.StringOrNull("LastStatus");
+        var cafeName = r.GetString(r.GetOrdinal("CafeName"));
+        var cafeDistance = r.GetDouble(r.GetOrdinal("CafeDistance"));
+        var reports = r.GetInt64(r.GetOrdinal("Reports"));
+        var routeId = r.StringOrNull("RouteId");
 
         return new OperationalEvent
         {
@@ -128,22 +133,31 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
             Code = "RFE-001",
             Title = "POSSIBLE REFRESHMENT EVENT",
             VehicleId = vehicleId,
-            RouteId = r.StringOrNull("RouteId"),
+            RouteId = routeId,
             Latitude = lat,
             Longitude = lon,
             Since = since,
             LastSeen = lastSeen,
             RecommendedAction = "Monitor until departure",
+            Facts = new Dictionary<string, object?>
+            {
+                ["route"] = routeId?.Split('-')[0],
+                ["stationary_minutes"] = Math.Round(dwell.TotalMinutes, 1),
+                ["at_a_stop"] = false,
+                ["stop_status"] = status,
+                ["nearest_cafe"] = cafeName,
+                ["cafe_distance_m"] = Math.Round(cafeDistance),
+                ["position_reports_in_window"] = reports,
+            },
             Evidence =
             [
                 new(EvidenceLayer.Observed, "Reported position", Position(lat, lon)),
                 new(EvidenceLayer.Observed, "Stop status", status ?? "not reported"),
-                new(EvidenceLayer.Observed, "Reports in window", r.GetInt64(r.GetOrdinal("Reports")).ToString(CultureInfo.InvariantCulture)),
+                new(EvidenceLayer.Observed, "Reports in window", reports.ToString(CultureInfo.InvariantCulture)),
                 new(EvidenceLayer.Derived, "Stationary",
                     $"{dwell.TotalMinutes:0.0} min within {options.StillRadiusMetres:0} m"),
                 new(EvidenceLayer.Derived, "At a stop", "No"),
-                new(EvidenceLayer.Derived, "Nearest café",
-                    $"{r.GetString(r.GetOrdinal("CafeName"))} ({r.GetDouble(r.GetOrdinal("CafeDistance")):0} m)"),
+                new(EvidenceLayer.Derived, "Nearest café", $"{cafeName} ({cafeDistance:0} m)"),
             ],
         };
     }
@@ -158,6 +172,9 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
         var lon = r.GetDouble(r.GetOrdinal("Longitude"));
         var bridge = r.StringOrNull("BridgeName");
         var bridgeDistance = r.DoubleOrNull("BridgeDistance");
+        var water = r.StringOrNull("WaterName");
+        var status = r.StringOrNull("CurrentStatus");
+        var routeId = r.StringOrNull("RouteId");
 
         var evt = new OperationalEvent
         {
@@ -165,18 +182,26 @@ public sealed class AdxEventDetector(AdxQueryClient adx, EventDetectionOptions o
             Code = "PAE-001",
             Title = "POSSIBLE AQUATIC TRANSFER EVENT",
             VehicleId = vehicleId,
-            RouteId = r.StringOrNull("RouteId"),
+            RouteId = routeId,
             Latitude = lat,
             Longitude = lon,
             Since = seen,
             LastSeen = seen,
             RecommendedAction = "Further investigation",
+            Facts = new Dictionary<string, object?>
+            {
+                ["route"] = routeId?.Split('-')[0],
+                ["inside_water_body"] = water ?? "unnamed waterway",
+                ["nearest_vehicle_bridge"] = bridge,
+                ["nearest_bridge_distance_m"] = bridgeDistance is { } bd ? Math.Round(bd) : null,
+                ["is_ferry_route"] = false,
+                ["stop_status"] = status,
+            },
             Evidence =
             [
                 new(EvidenceLayer.Observed, "Reported position", Position(lat, lon)),
-                new(EvidenceLayer.Observed, "Stop status", r.StringOrNull("CurrentStatus") ?? "not reported"),
-                new(EvidenceLayer.Derived, "Waterway relationship",
-                    $"Inside {r.StringOrNull("WaterName") ?? "unnamed waterway"}"),
+                new(EvidenceLayer.Observed, "Stop status", status ?? "not reported"),
+                new(EvidenceLayer.Derived, "Waterway relationship", $"Inside {water ?? "unnamed waterway"}"),
                 new(EvidenceLayer.Derived, "Nearest vehicle bridge", bridgeDistance is { } d
                     ? $"{(string.IsNullOrEmpty(bridge) ? "unnamed" : bridge)} ({d:0} m)"
                     : "none found"),

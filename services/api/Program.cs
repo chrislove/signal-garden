@@ -1,7 +1,9 @@
 using SignalGarden.Api.Adx;
+using SignalGarden.Api.Inference;
 using SignalGarden.Api.Demo;
 using SignalGarden.Core.Abstractions;
 using SignalGarden.Core.Contracts;
+using SignalGarden.Decisions.Jev;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,17 @@ if (!string.IsNullOrWhiteSpace(queryUri))
 }
 var syntheticEvents = builder.Configuration.GetValue("Api:Demo:SyntheticEvents", false);
 
+// Jev judges each event (the INFERRED evidence layer) when TYPESAFE_API_KEY is
+// set — user secrets locally, .env.web on the server. Without it, events still
+// work and simply show as not assessed.
+var jevConfigured = !string.IsNullOrWhiteSpace(builder.Configuration["TYPESAFE_API_KEY"]);
+if (jevConfigured)
+{
+    builder.Services.AddJevDecisionEngine(builder.Configuration);
+    builder.Services.AddSingleton<IEventAssessor, JevEventAssessor>();
+    builder.Services.AddSingleton<EventAssessments>();
+}
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -46,9 +59,12 @@ if (app.Environment.IsDevelopment())
 
 // In the container the built Angular app sits in wwwroot, so one origin serves
 // both the dashboard and /api — no CORS, no proxy. Locally wwwroot doesn't
-// exist and these are no-ops; `npm start` serves the UI instead.
-app.UseDefaultFiles();
-app.UseStaticFiles();
+// exist, so they're skipped; `npm start` serves the UI instead.
+if (app.Environment.WebRootPath is { } webRoot && Directory.Exists(webRoot))
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 // Route *after* static files: otherwise routing runs first, the fallback below
 // claims every request, and main.js comes back as index.html.
 app.UseRouting();
@@ -95,7 +111,9 @@ app.MapGet("/api/events", async (IServiceProvider services, CancellationToken ca
     var scan = await detector.DetectAsync(cancellationToken);
     if (syntheticEvents)
         scan = scan with { Events = [SyntheticEvents.AquaticTransfer(scan.ScannedAt), .. scan.Events] };
-    return Results.Ok(EventsResponseDto.From(scan));
+    if (services.GetService<EventAssessments>() is { } assessments)
+        scan = scan with { Events = await assessments.AttachAsync(scan.Events) };
+    return Results.Ok(EventsResponseDto.From(scan, assessed: jevConfigured));
 })
 .WithName("GetEvents");
 

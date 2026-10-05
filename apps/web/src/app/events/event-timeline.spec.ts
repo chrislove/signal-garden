@@ -16,6 +16,7 @@ const STAGED: OperationalEvent = {
   recommendedAction: 'Further investigation',
   synthetic: true,
   evidence: [{ layer: 'DERIVED', label: 'Waterway relationship', value: 'Inside Brisbane River' }],
+  assessment: null,
 };
 
 describe('EventTimeline', () => {
@@ -37,6 +38,38 @@ describe('EventTimeline', () => {
     expect(render().nativeElement.querySelector('.evidence')).toBeNull();
     const el: HTMLElement = render(STAGED.id).nativeElement;
     expect(el.querySelector('.evidence')?.textContent).toContain('Inside Brisbane River');
+  });
+
+  it('shows the model verdict and its probability spread once assessed', () => {
+    const fixture = TestBed.createComponent(EventTimeline);
+    fixture.componentRef.setInput('events', [
+      {
+        ...STAGED,
+        assessment: {
+          verdict: 'gps_anomaly',
+          description: 'Position error',
+          probability: 0.43,
+          confidence: 0.24,
+          model: 'jev-1.13.0',
+          options: [
+            { name: 'gps_anomaly', description: 'Position error', probability: 0.43 },
+            { name: 'aquatic_transfer', description: 'In the water', probability: 0.42 },
+          ],
+        },
+      },
+    ]);
+    fixture.componentRef.setInput('selectedId', STAGED.id);
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).querySelector('.assessment')?.textContent;
+    expect(text).toContain('Gps anomaly 43%');
+    expect(text).toContain('Aquatic transfer');
+  });
+
+  it('says it is assessing while a configured model has not answered yet', () => {
+    const fixture = render(STAGED.id);
+    fixture.componentRef.setInput('assessmentEnabled', true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.pending')?.textContent).toContain('Assessing');
   });
 
   it('selects on click, and deselects when clicked again', () => {

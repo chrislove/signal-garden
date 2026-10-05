@@ -37,6 +37,16 @@ public sealed record OperationalEvent
     public required string RecommendedAction { get; init; }
 
     /// <summary>
+    /// The same facts as <see cref="Evidence"/>, as raw values rather than display
+    /// strings (e.g. <c>stationary_minutes = 18.5</c>). This is what a model is shown
+    /// when it's asked to judge the event.
+    /// </summary>
+    public IReadOnlyDictionary<string, object?> Facts { get; init; } = new Dictionary<string, object?>();
+
+    /// <summary>A model's judgement of what's going on, once assessed. Null until then.</summary>
+    public Assessment? Assessment { get; init; }
+
+    /// <summary>
     /// True for staged demo scenarios. Synthetic events are always labelled as
     /// such in the UI — a fabricated event must never pass as an observed one.
     /// </summary>
@@ -56,6 +66,26 @@ public enum EvidenceLayer
     Observed,
     /// <summary>Calculated deterministically, e.g. a distance or a dwell time.</summary>
     Derived,
-    /// <summary>A model's judgement, with its probability (e.g. Jev). Not used yet.</summary>
+    /// <summary>A model's judgement, with its probability (see <see cref="Assessment"/>).</summary>
     Inferred,
 }
+
+/// <summary>
+/// A model's probabilistic judgement of an event: its pick, and how the
+/// probability was spread across every option it was offered.
+/// </summary>
+/// <param name="Verdict">The chosen option, e.g. "layover".</param>
+/// <param name="Description">What that option means, as the model was told it.</param>
+/// <param name="Probability">Probability of the chosen option (0–1).</param>
+/// <param name="Confidence">The model's own confidence in the pick (0–1). Low means torn.</param>
+/// <param name="Options">Every option offered, most likely first.</param>
+/// <param name="Model">Model and version that made the call, e.g. "jev-1.13.0".</param>
+public sealed record Assessment(
+    string Verdict,
+    string Description,
+    double Probability,
+    double Confidence,
+    IReadOnlyList<AssessmentOption> Options,
+    string Model);
+
+public sealed record AssessmentOption(string Name, string Description, double Probability);

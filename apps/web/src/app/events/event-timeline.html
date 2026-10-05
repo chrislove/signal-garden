@@ -13,6 +13,9 @@
         <strong>{{ e.title }}</strong>
         <span class="meta">
           Route {{ e.route ?? '?' }} · {{ minutes(e) }} min · since {{ e.since | date: 'HH:mm' }}
+          @if (e.assessment; as a) {
+            · <span class="verdict">{{ label(a.verdict) }} {{ a.probability | percent }}</span>
+          }
         </span>
       </button>
 
@@ -29,7 +32,28 @@
           }
           <div>
             <dt><span class="layer inferred">INFERRED</span><span>Assessment</span></dt>
-            <dd class="pending">Not yet assessed</dd>
+            @if (e.assessment; as a) {
+              <dd class="assessment">
+                <strong>{{ label(a.verdict) }} {{ a.probability | percent }}</strong>
+                <span class="conf" title="The model's confidence in its own pick">
+                  confidence {{ a.confidence | number: '1.2-2' }}
+                </span>
+                <ul>
+                  @for (o of a.options; track o.name) {
+                    <li [title]="o.description">
+                      <span class="bar" [style.width.%]="o.probability * 100"></span>
+                      <span>{{ label(o.name) }}</span
+                      ><span>{{ o.probability | percent }}</span>
+                    </li>
+                  }
+                </ul>
+                <span class="model">{{ a.model }}</span>
+              </dd>
+            } @else {
+              <dd class="pending">
+                {{ assessmentEnabled() ? 'Assessing…' : 'Not assessed (no model configured)' }}
+              </dd>
+            }
           </div>
         </dl>
         <p class="action">

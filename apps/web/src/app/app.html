@@ -65,6 +65,7 @@
         [vesselsInWater]="eventScan().vesselsInWater"
         [vehiclesOnBridges]="eventScan().vehiclesOnBridges"
         [loaded]="eventsLoaded()"
+        [assessmentEnabled]="eventScan().assessmentEnabled"
         (selected)="selectedEventId.set($event)"
       />
     </div>
