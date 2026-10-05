@@ -136,9 +136,18 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
   - A staged PAE-001 (Route 199, mid-river at New Farm) for demos, always
     labelled SYNTHETIC, dev only.
 - **The first real PAE-001 was a false positive, and the evidence trail found
-  it:** a train "in" Kedron Brook, nearest bridge 3.2 km. The bridge layer only
-  covered rivers, not canals, so the Airtrain bridge was missing. Fixed the
-  loader; the point is now 1.9 m from a rail bridge.
+  it.** 1:19 pm: a train on the `BRBD` line was reported at -27.41094,
+  153.06288, near Toombul. That's inside OSM way 597039868, Kedron Brook
+  mapped as `water=canal`, and the evidence said "nearest vehicle bridge:
+  Abbotsford Road, 3.2 km". A train doesn't swim 3 km from a bridge, so the
+  reference data had to be wrong. It was: the bridge layer only took bridges
+  over `water=river`, so the Airtrain bridge over the brook was never loaded.
+  Fixed the loader to use the same water filter for bridges (180 → 189); the
+  spot is now 1.9 m from the Airtrain rail bridge, which counts as a bridge
+  crossing, not an aquatic transfer.
+  - Why it matters: the bare verdict ("train in water") was wrong, but the
+    *derived* evidence next to it made the mistake obvious within a minute.
+    That's the case for showing operators the evidence, not just the alert.
 - KQL gotcha: `latest` is a reserved word. `let latest = …` fails with nothing
   but "Request is invalid".
 
