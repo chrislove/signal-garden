@@ -46,6 +46,15 @@ public class ContractTests
     }
 
     [Fact]
+    public void Incident_reference_is_short_and_stable_for_the_same_event()
+    {
+        var reference = EventDto.From(Event(Now, Now)).Reference;
+        Assert.Matches("^[0-9A-F]{4}$", reference);
+        Assert.Equal(reference, EventDto.From(Event(Now, Now.AddMinutes(5))).Reference); // next poll
+        Assert.NotEqual(reference, EventDto.ReferenceFor("RFE-001:another-vehicle"));
+    }
+
+    [Fact]
     public void Staged_aquatic_event_is_always_marked_synthetic()
     {
         var staged = EventDto.From(SyntheticEvents.AquaticTransfer(Now));

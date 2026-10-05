@@ -7,6 +7,7 @@
     <li [class.selected]="e.id === selectedId()" [attr.data-code]="e.code">
       <button type="button" (click)="toggle(e.id)" [attr.aria-expanded]="e.id === selectedId()">
         <span class="code">{{ e.code }}</span>
+        <span class="ref" title="Incident reference">#{{ e.reference }}</span>
         @if (e.synthetic) {
           <span class="synthetic" title="Staged demo scenario, not observed">Synthetic</span>
         }

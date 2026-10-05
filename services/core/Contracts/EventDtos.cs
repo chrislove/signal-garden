@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using SignalGarden.Core.Abstractions;
 using SignalGarden.Core.Models;
 
@@ -31,6 +33,14 @@ public sealed record EventDto
 {
     public required string Id { get; init; }
     public required string Code { get; init; }
+
+    /// <summary>
+    /// Short incident reference, e.g. "4F2A" — what an operator would say out
+    /// loud ("can you look at 4F2A?"). <see cref="Code"/> is the event *type*
+    /// and is shared by every event of that kind.
+    /// </summary>
+    public required string Reference { get; init; }
+
     public required string Title { get; init; }
     public required string VehicleId { get; init; }
 
@@ -53,6 +63,7 @@ public sealed record EventDto
     {
         Id = e.Id,
         Code = e.Code,
+        Reference = ReferenceFor(e.Id),
         Title = e.Title,
         VehicleId = e.VehicleId,
         Route = e.RouteId?.Split('-')[0],
@@ -70,6 +81,14 @@ public sealed record EventDto
                 a.Options.Select(o => new AssessmentOptionDto(o.Name, o.Description, Math.Round(o.Probability, 3))).ToList())
             : null,
     };
+
+    /// <summary>
+    /// First 4 hex digits of a hash of the event id: stable for the life of the
+    /// event (same id → same reference on every poll), short enough to say.
+    /// 65,536 values is plenty for the handful of events live at any time.
+    /// </summary>
+    public static string ReferenceFor(string eventId) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(eventId)))[..4];
 }
 
 /// <param name="Layer">OBSERVED, DERIVED or INFERRED.</param>

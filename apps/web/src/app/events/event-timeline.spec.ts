@@ -5,6 +5,7 @@ import { OperationalEvent } from './operational-event';
 const STAGED: OperationalEvent = {
   id: 'PAE-001:SYNTHETIC-1847',
   code: 'PAE-001',
+  reference: '4F2A',
   title: 'POSSIBLE AQUATIC TRANSFER EVENT',
   vehicleId: 'SYNTHETIC-1847',
   route: '199',
@@ -28,6 +29,11 @@ describe('EventTimeline', () => {
     fixture.detectChanges();
     return fixture;
   }
+
+  it('shows the incident reference next to the event type', () => {
+    const el: HTMLElement = render().nativeElement;
+    expect(el.querySelector('.ref')?.textContent).toContain('#4F2A');
+  });
 
   it('always labels a synthetic event as synthetic', () => {
     const el: HTMLElement = render().nativeElement;

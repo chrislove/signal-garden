@@ -161,3 +161,10 @@ button {
     background: rgba(179, 140, 255, 0.22);
   }
 }
+
+.ref {
+  font:
+    600 0.7rem ui-monospace,
+    monospace;
+  color: var(--sg-text, #e6edf0);
+}

@@ -113,7 +113,9 @@ export class VehicleMap implements OnDestroy {
         fillOpacity: 0.2,
         dashArray: e.synthetic ? '4 4' : undefined,
       })
-        .bindTooltip(`${e.code}${e.synthetic ? ' (synthetic)' : ''}`, { direction: 'top' })
+        .bindTooltip(`${e.code} #${e.reference}${e.synthetic ? ' (synthetic)' : ''}`, {
+          direction: 'top',
+        })
         .on('click', () => this.eventSelected.emit(e.id))
         .addTo(this.eventMarkers);
     }

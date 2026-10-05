@@ -14,6 +14,8 @@ export interface OperationalEvent {
   id: string;
   /** e.g. "PAE-001" (aquatic transfer) or "RFE-001" (refreshment). */
   code: string;
+  /** Short incident reference, e.g. "4F2A". `code` is the event type, shared by all of its kind. */
+  reference: string;
   title: string;
   vehicleId: string;
   route: string | null;
