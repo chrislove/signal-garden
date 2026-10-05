@@ -150,6 +150,21 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
     That's the case for showing operators the evidence, not just the alert.
 - KQL gotcha: `latest` is a reserved word. `let latest = …` fails with nothing
   but "Request is invalid".
+- **Public, behind a login: https://signalgarden.christopherlove.au**
+  - The API now also serves the built Angular app, so one container on the home
+    server is the whole dashboard (multi-stage Docker build: Node → .NET).
+  - A Cloudflare Tunnel (`cloudflared` in compose) dials *out* to Cloudflare's
+    Brisbane and Sydney edges. Nothing is open on the home router and the home
+    IP stays hidden.
+  - Cloudflare Access sits in front: anyone can enter an email and get a
+    one-time code, and the logs show who looked. Set up *before* the tunnel, so
+    the site was never reachable without a login. Every path, `/api` included,
+    redirects to the login page.
+  - The dashboard reads ADX with its own read-only service principal
+    (`signalgarden-api`, Viewer). The ingest one can only write.
+  - First container build was a blank page: routing ran before static files,
+    so `main.js` came back as `index.html`. Fixed, with in-memory hosting tests
+    that fail on the old code.
 
 ---
 
