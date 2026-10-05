@@ -202,6 +202,20 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
   (a textbook layover); Route 126, still for 12 min, **394 m from any of its
   stops**, near a Zarraffa's (the interesting one); a Nambour train standing
   at Landsborough platform 2.
+- **Route 126's first run** (kept as a story, with re-runnable KQL in
+  `infra/adx/stories/route-126-first-run.kql`). Followed the "interesting one"
+  back through ADX:
+  - 05:00:34 the bus switches on and reports one position for 14+ minutes,
+    identical to 5 decimal places, while the feed says `IN_TRANSIT_TO`.
+  - It's signed on to the wrong trip: `39083114`, the 06:00 run from
+    Sunnybank Plaza, 10 km away. At 05:10:58 the trip ID flips to `39083099`,
+    its real first run (05:15 from Parkwood Dr near Watergum St, 615 m away),
+    without the bus moving a metre.
+  - The nearest stop on its route is 394 m away; the café is a Zarraffa's,
+    133 m away. (Only spotted because the test used loosened thresholds:
+    café within 150 m, not the dashboard's 50 m.)
+  - The point: every line of that came from a query, and the feed's own
+    status (`IN_TRANSIT_TO`) was the least trustworthy part of it.
 
 ---
 

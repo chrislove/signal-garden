@@ -1,0 +1,85 @@
+// Route 126's first run, Tue 6 Oct 2026 — a bus that "wasn't there".
+//
+// Spotted at 5 am while testing the new "where is it on its own route" facts
+// (with loosened thresholds: café within 150 m, not the dashboard's 50 m):
+// stationary 12 min, 394 m from any of its route's stops, 133 m from a
+// Zarraffa's. The trail tells a better story than coffee: a bus waiting to
+// start its day, signed on to the wrong trip.
+//
+// Each query stands alone: click inside one and press Run in the Data Explorer
+// web UI (signalgarden database). Times are fixed, so the answers don't change.
+// Raw data is kept 30 days (until early November 2026).
+
+
+// 1. The trail: every report, in Brisbane time, with how far it moved.
+//    One position for 14 minutes, while the feed says IN_TRANSIT_TO.
+let vehicle = "A7393ED51E387246BB3D6249943091E8_1495";
+VehicleObservations
+| where VehicleId == vehicle
+| where EventTime between (datetime(2026-10-05 18:55) .. datetime(2026-10-05 20:45))
+| summarize arg_min(IngestionTime, *) by EventTime        // drop the worker's repeat-sends
+| order by EventTime asc
+| extend Moved_m = round(geo_distance_2points(Longitude, Latitude, prev(Longitude), prev(Latitude)))
+| project Local = datetime_utc_to_local(EventTime, "Australia/Brisbane"),
+          Route = tostring(split(RouteId, "-")[0]), TripId, CurrentStatus, StopId,
+          Latitude, Longitude, Moved_m
+
+
+// 2. The trip ID flips without the bus moving.
+//    05:00 it's on 39083114 (the 06:00 run from Sunnybank Plaza, 10 km away);
+//    05:10:58 it becomes 39083099 (its real first run, 05:15 from Parkwood Dr).
+let vehicle = "A7393ED51E387246BB3D6249943091E8_1495";
+VehicleObservations
+| where VehicleId == vehicle
+| where EventTime between (datetime(2026-10-05 18:55) .. datetime(2026-10-05 19:20))
+| summarize arg_min(IngestionTime, *) by EventTime
+| summarize From = datetime_utc_to_local(min(EventTime), "Australia/Brisbane"),
+            To = datetime_utc_to_local(max(EventTime), "Australia/Brisbane"),
+            Reports = count(),
+            DistinctPositions = dcount(strcat(Latitude, ",", Longitude))
+         by TripId
+| order by From asc
+
+
+// 3. Where was it, relative to its own route? (static GTFS: Stops + RouteStops)
+//    Nearest stop on route 126 is 394 m away; its first stop of the day, 615 m.
+let vehicle = "A7393ED51E387246BB3D6249943091E8_1495";
+let parked = VehicleObservations
+    | where VehicleId == vehicle
+    | where EventTime between (datetime(2026-10-05 19:00) .. datetime(2026-10-05 19:15))
+    | summarize arg_max(EventTime, Latitude, Longitude, RouteId);
+parked
+| join kind=inner RouteStops on RouteId
+| join kind=inner Stops on StopId
+| extend Distance_m = round(geo_distance_2points(Longitude, Latitude, Longitude1, Latitude1))
+| project StopId, Name, IsTerminus, Distance_m
+| order by Distance_m asc
+| take 5
+
+
+// 4. And the café (OpenStreetMap), for the headline.
+let vehicle = "A7393ED51E387246BB3D6249943091E8_1495";
+let parked = VehicleObservations
+    | where VehicleId == vehicle
+    | where EventTime between (datetime(2026-10-05 19:00) .. datetime(2026-10-05 19:15))
+    | summarize arg_max(EventTime, Latitude, Longitude);
+parked
+| extend k = 1
+| join kind=inner (Cafes | extend k = 1) on k
+| extend Distance_m = round(geo_distance_2points(Longitude, Latitude, Longitude1, Latitude1))
+| where Distance_m < 300
+| project Cafe = Name, Distance_m
+| order by Distance_m asc
+
+
+// 5. Did it leave for its 05:15 departure? When did it first move?
+let vehicle = "A7393ED51E387246BB3D6249943091E8_1495";
+VehicleObservations
+| where VehicleId == vehicle
+| where EventTime between (datetime(2026-10-05 19:00) .. datetime(2026-10-05 20:45))
+| summarize arg_min(IngestionTime, *) by EventTime
+| order by EventTime asc
+| extend Moved_m = geo_distance_2points(Longitude, Latitude, prev(Longitude), prev(Latitude))
+| where Moved_m > 20
+| take 1
+| project FirstMoved = datetime_utc_to_local(EventTime, "Australia/Brisbane"), TripId, Moved_m
