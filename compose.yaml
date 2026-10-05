@@ -5,6 +5,10 @@
 #   cp .env.ingest.example .env.ingest   # then fill these in — never commit them
 #   cp .env.web.example .env.web
 #   docker compose up -d --build
+#
+# Public access goes through a Cloudflare Tunnel (outbound only — nothing is
+# opened on the router) with Cloudflare Access in front. Put the tunnel token in
+# .env.tunnel as TUNNEL_TOKEN=..., then: docker compose up -d tunnel
 #   docker compose logs -f ingest
 services:
   ingest:
@@ -30,6 +34,24 @@ services:
     # tunnel, which reaches this container over Docker's internal network.
     ports:
       - "8080:8080"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # Dials out to Cloudflare and carries signalgarden.christopherlove.au to the
+  # web container. The hostname → http://web:8080 route and the Access login
+  # policy live in the Cloudflare Zero Trust dashboard, not here.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    env_file:
+      - path: .env.tunnel
+        required: false
+    depends_on:
+      - web
     restart: unless-stopped
     logging:
       driver: json-file
