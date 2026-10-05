@@ -73,6 +73,8 @@ parked
 
 
 // 5. Did it leave for its 05:15 departure? When did it first move?
+//    05:16:58 — 242 m in the first 30 s, then 412 m: at its first stop (615 m
+//    away) around 05:17:30, about 2½ minutes after the timetabled 05:15.
 let vehicle = "A7393ED51E387246BB3D6249943091E8_1495";
 VehicleObservations
 | where VehicleId == vehicle

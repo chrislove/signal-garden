@@ -214,6 +214,9 @@ Learning project; entries are informal on purpose. `☐` = planned, `✅` = done
   - The nearest stop on its route is 394 m away; the café is a Zarraffa's,
     133 m away. (Only spotted because the test used loosened thresholds:
     café within 150 m, not the dashboard's 50 m.)
+  - The ending, caught live by a watch query: it pulled away at 05:16:58
+    and reached its first stop around 05:17:30, about 2½ minutes after the
+    timetabled 05:15.
   - The point: every line of that came from a query, and the feed's own
     status (`IN_TRANSIT_TO`) was the least trustworthy part of it.
 
