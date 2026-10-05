@@ -49,6 +49,9 @@ if (app.Environment.IsDevelopment())
 // exist and these are no-ops; `npm start` serves the UI instead.
 app.UseDefaultFiles();
 app.UseStaticFiles();
+// Route *after* static files: otherwise routing runs first, the fallback below
+// claims every request, and main.js comes back as index.html.
+app.UseRouting();
 
 // Liveness/readiness probe — always safe to call.
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "signal-garden-api" }))
@@ -96,12 +99,15 @@ app.MapGet("/api/events", async (IServiceProvider services, CancellationToken ca
 })
 .WithName("GetEvents");
 
-// Angular routes are client-side, so any other non-file path gets index.html.
+// Angular routes are client-side, so any other path that isn't a file gets index.html.
 // (/api/* stays out of it: an unknown API path should be a 404, not a web page.)
-app.MapFallbackToFile("{*path:regex(^(?!api/).*$)}", "index.html");
+app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html");
 
 app.Run();
 
 static IResult NotConfigured() => Results.Problem(
     "ADX is not configured. Set Api:Adx:QueryUri in user secrets.",
     statusCode: StatusCodes.Status503ServiceUnavailable);
+
+// Lets the test project start the real app in memory (WebApplicationFactory).
+public partial class Program;
