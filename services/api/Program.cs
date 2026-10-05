@@ -41,7 +41,14 @@ if (app.Environment.IsDevelopment())
     app.UseCors(DevCorsPolicy);
 }
 
-app.UseHttpsRedirection();
+// No HTTPS redirect: TLS ends before we're reached (Cloudflare in production,
+// the Angular dev server locally), so the API itself only ever speaks HTTP.
+
+// In the container the built Angular app sits in wwwroot, so one origin serves
+// both the dashboard and /api — no CORS, no proxy. Locally wwwroot doesn't
+// exist and these are no-ops; `npm start` serves the UI instead.
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 // Liveness/readiness probe — always safe to call.
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "signal-garden-api" }))
@@ -88,6 +95,10 @@ app.MapGet("/api/events", async (IServiceProvider services, CancellationToken ca
     return Results.Ok(EventsResponseDto.From(scan));
 })
 .WithName("GetEvents");
+
+// Angular routes are client-side, so any other non-file path gets index.html.
+// (/api/* stays out of it: an unknown API path should be a 404, not a web page.)
+app.MapFallbackToFile("{*path:regex(^(?!api/).*$)}", "index.html");
 
 app.Run();
 

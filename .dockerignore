@@ -2,9 +2,11 @@
 **/bin/
 **/obj/
 **/node_modules/
-apps/
+apps/web/.angular/
+apps/web/dist/
 data/
 .notes/
+.secrets/
 .git/
 .env
 .env.*

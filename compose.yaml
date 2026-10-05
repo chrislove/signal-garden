@@ -1,7 +1,9 @@
-# Always-on ingest worker for a home server (or any Docker host).
+# Signal Garden on a home server (or any Docker host): the always-on ingest
+# worker, and the dashboard (Angular + API in one container).
 #
 #   git clone https://github.com/chrislove/signal-garden.git && cd signal-garden
-#   cp .env.ingest.example .env.ingest   # then fill it in — never commit it
+#   cp .env.ingest.example .env.ingest   # then fill these in — never commit them
+#   cp .env.web.example .env.web
 #   docker compose up -d --build
 #   docker compose logs -f ingest
 services:
@@ -12,6 +14,22 @@ services:
     env_file: .env.ingest
     environment:
       DOTNET_ENVIRONMENT: Production
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  web:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    env_file: .env.web
+    # Home network only, for testing. The public route is the Cloudflare
+    # tunnel, which reaches this container over Docker's internal network.
+    ports:
+      - "8080:8080"
     restart: unless-stopped
     logging:
       driver: json-file
